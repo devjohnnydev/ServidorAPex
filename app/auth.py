@@ -20,6 +20,15 @@ def admin_required(f):
     return wrapper
 
 
+import time
+
+# Dicionário em memória para proteção contra Brute Force
+# Formato: { "key": {"tentativas": int, "bloqueado_ate": float} }
+TENTATIVAS_LOGIN = {}
+MAX_TENTATIVAS = 5
+TEMPO_BLOQUEIO_SEGUNDOS = 300  # 5 minutos
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -27,12 +36,38 @@ def login():
 
     if request.method == "POST":
         from flask import current_app
+        from .notas import registrar_log
+
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+        ip_cliente = request.headers.get("X-Forwarded-For", request.remote_addr)
+        if ip_cliente and "," in ip_cliente:
+            ip_cliente = ip_cliente.split(",")[0].strip()
+
+        chave_bloqueio = f"{username.lower()}:{ip_cliente}"
+        agora = time.time()
+
+        # Verificar se esta temporariamente bloqueado por forca bruta
+        info_tentativas = TENTATIVAS_LOGIN.get(chave_bloqueio, {"tentativas": 0, "bloqueado_ate": 0})
+        
+        if info_tentativas["bloqueado_ate"] > agora:
+            tempo_restante = int(info_tentativas["bloqueado_ate"] - agora)
+            minutos = tempo_restante // 60
+            segundos = tempo_restante % 60
+            msg_tempo = f"{minutos} min e {segundos} s" if minutos > 0 else f"{segundos} segundos"
+            flash(f"Muitas tentativas incorretas. Conta bloqueada temporariamente. Aguarde {msg_tempo} para tentar novamente.", "danger")
+            return render_template("login.html")
+
+        # Se o tempo de bloqueio já expirou, reseta o contador
+        if info_tentativas["bloqueado_ate"] > 0 and info_tentativas["bloqueado_ate"] <= agora:
+            TENTATIVAS_LOGIN[chave_bloqueio] = {"tentativas": 0, "bloqueado_ate": 0}
+            info_tentativas = TENTATIVAS_LOGIN[chave_bloqueio]
 
         # 1. Tenta autenticacao local
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password) and user.ativo:
+            # Login com sucesso: reseta contador de erros
+            TENTATIVAS_LOGIN.pop(chave_bloqueio, None)
             login_user(user, remember=True)
             next_page = request.args.get("next")
             return redirect(next_page or url_for("notas.dashboard"))
@@ -43,6 +78,7 @@ def login():
             from .apex_auth import autenticar_apex, obter_ou_criar_shadow_user
             resultado = autenticar_apex(apex_url, username, password)
             if resultado:
+                TENTATIVAS_LOGIN.pop(chave_bloqueio, None)
                 shadow = obter_ou_criar_shadow_user(
                     db, User,
                     username=username,
@@ -53,10 +89,20 @@ def login():
                 next_page = request.args.get("next")
                 return redirect(next_page or url_for("notas.dashboard"))
 
-        flash("Usuário ou senha inválidos.", "danger")
+        # Login falhou: incrementa contador de tentativas incorretas
+        tentativas_atuais = info_tentativas["tentativas"] + 1
+        if tentativas_atuais >= MAX_TENTATIVAS:
+            bloqueado_ate = agora + TEMPO_BLOQUEIO_SEGUNDOS
+            TENTATIVAS_LOGIN[chave_bloqueio] = {"tentativas": tentativas_atuais, "bloqueado_ate": bloqueado_ate}
+            registrar_log("Bloqueio de Força Bruta", f"Usuário '{username}' bloqueado por 5 minutos após {MAX_TENTATIVAS} tentativas erradas de login (IP: {ip_cliente}).")
+            flash("Muitas tentativas incorretas consecutivas (5/5). Sua conta foi temporariamente bloqueada por 5 minutos por segurança.", "danger")
+        else:
+            TENTATIVAS_LOGIN[chave_bloqueio] = {"tentativas": tentativas_atuais, "bloqueado_ate": 0}
+            restantes = MAX_TENTATIVAS - tentativas_atuais
+            flash(f"Usuário ou senha inválidos. Restam {restantes} tentativa(s) antes do bloqueio temporário.", "danger")
+
         return render_template("login.html")
 
-    return render_template("login.html")
 
 
 @auth_bp.route("/logout")
