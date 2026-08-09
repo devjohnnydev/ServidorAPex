@@ -56,3 +56,10 @@ class Nota(db.Model):
     def pode_editar(self, user):
         return user.is_admin or self.enviado_por_id == user.id
 
+
+class Categoria(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(80), unique=True, nullable=False)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
+

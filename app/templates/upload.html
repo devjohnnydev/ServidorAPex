@@ -22,13 +22,21 @@
           </select>
         </div>
         <div class="col-6">
-          <label class="form-label">Categoria</label>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label m-0">Categoria</label>
+            {% if current_user.is_admin %}
+            <button type="button" class="btn btn-link p-0 text-decoration-none text-success small" data-bs-toggle="modal" data-bs-target="#modalNovaCategoriaUpload">
+              <i class="fa-solid fa-plus-circle"></i> Nova
+            </button>
+            {% endif %}
+          </div>
           <select name="categoria" class="form-select">
             {% for c in categorias %}
             <option value="{{ c }}">{{ c }}</option>
             {% endfor %}
           </select>
         </div>
+
         <div class="col-6">
           <label class="form-label">Tipo de documento</label>
           <select name="tipo_documento" class="form-select">
@@ -76,4 +84,33 @@
     </form>
   </div>
 </div>
+{% if current_user.is_admin %}
+<!-- Modal Nova Categoria -->
+<div class="modal fade" id="modalNovaCategoriaUpload" tabindex="-1" aria-labelledby="modalNovaCategoriaUploadLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--apex-escuro); border: 1px solid rgba(42, 208, 122, 0.4); color: var(--apex-texto);">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="modalNovaCategoriaUploadLabel"><i class="fa-solid fa-folder-plus me-2 text-success"></i>Cadastrar Nova Categoria</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('notas.criar_categoria') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="nomeCategoriaInputUpload" class="form-label">Nome da Categoria</label>
+            <input type="text" class="form-control" id="nomeCategoriaInputUpload" name="nome_categoria" placeholder="Ex: Impostos Federais, Sucata Plástica..." required>
+            <div class="form-text text-muted">A nova categoria ficará imediatamente disponível nos filtros e cadastros.</div>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save me-1"></i> Salvar Categoria</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
+

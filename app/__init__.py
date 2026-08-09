@@ -37,23 +37,39 @@ def create_app():
     app.register_blueprint(notas_bp)
     app.register_blueprint(setup_bp)  # TEMPORARIO
 
-    # Garante que as tabelas existam no banco (seguro em producao e local).
-    # Equivale a rodar `flask init-db` automaticamente no primeiro start.
     with app.app_context():
         db.create_all()
         _migrar_colunas(db)
+        _inicializar_categorias(app, db)
 
     register_cli(app)
 
     @app.context_processor
     def inject_globals():
+        from .models import Categoria
+        cats_db = [c.nome for c in Categoria.query.order_by(Categoria.nome).all()]
+        # Unir categorias padrao com do banco mantendo ordem e sem duplicatas
+        todas_categorias = list(dict.fromkeys(app.config["CATEGORIAS"] + cats_db))
         return {
-            "categorias": app.config["CATEGORIAS"],
+            "categorias": todas_categorias,
             "tipos_documento": app.config["TIPOS_DOCUMENTO"],
             "status_financeiro": app.config["STATUS_FINANCEIRO"],
         }
 
     return app
+
+
+def _inicializar_categorias(app, db):
+    """Insere as categorias padrao no banco se a tabela estiver vazia."""
+    from .models import Categoria
+    try:
+        if Categoria.query.count() == 0:
+            for cat_nome in app.config["CATEGORIAS"]:
+                db.session.add(Categoria(nome=cat_nome))
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 
 
 

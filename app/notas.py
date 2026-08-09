@@ -248,6 +248,32 @@ def excluir(nota_id):
     return redirect(url_for("notas.dashboard"))
 
 
+from .models import Nota, User, Categoria
+
+
+@notas_bp.route("/categorias/nova", methods=["POST"])
+@login_required
+def criar_categoria():
+    if not current_user.is_admin:
+        abort(403)
+
+    nome_cat = request.form.get("nome_categoria", "").strip()
+    if nome_cat:
+        cat_existente = Categoria.query.filter(Categoria.nome.ilike(nome_cat)).first()
+        if not cat_existente:
+            nova_cat = Categoria(nome=nome_cat)
+            db.session.add(nova_cat)
+            db.session.commit()
+            flash(f"Categoria '{nome_cat}' criada com sucesso!", "success")
+        else:
+            flash(f"A categoria '{nome_cat}' já existe.", "warning")
+    else:
+        flash("Informe um nome válido para a categoria.", "danger")
+
+    # Redirecionar para onde veio (referer) ou dashboard por padrao
+    return redirect(request.referrer or url_for("notas.dashboard"))
+
+
 @notas_bp.route("/notas/<int:nota_id>/arquivo")
 @login_required
 def baixar_arquivo(nota_id):
@@ -258,3 +284,4 @@ def baixar_arquivo(nota_id):
         as_attachment=False,
         download_name=nota.arquivo_nome_original,
     )
+
