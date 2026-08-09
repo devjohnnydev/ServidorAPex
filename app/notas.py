@@ -446,11 +446,11 @@ def exportar_excel():
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Relatório Financeiro"
+    ws.title = "Relatório ApexTech"
 
-    # Estilos corporativos Apex Tech
-    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="0E291B", end_color="0E291B", fill_type="solid")
+    # Estilos corporativos ApexTech
+    header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1A5C36", end_color="1A5C36", fill_type="solid")
     center_align = Alignment(horizontal="center", vertical="center")
     right_align = Alignment(horizontal="right", vertical="center")
     left_align = Alignment(horizontal="left", vertical="center")
@@ -661,7 +661,7 @@ def disparar_alertas():
     # Construir Corpo HTML corporativo
     html = f"""
     <div style="font-family: Arial, sans-serif; background-color: #05100A; color: #e8f5ee; padding: 20px; border-radius: 10px;">
-      <h2 style="color: #2AD07A;">🛡️ Apex Tech Metais — Relatório Diário de Vencimentos</h2>
+      <h2 style="color: #2AD07A;">🛡️ ApexTech Metais — Relatório Diário de Vencimentos</h2>
       <p style="color: #7aaf8e;">Resumo automático de pendências financeiras gerado em {hoje.strftime('%d/%m/%Y')}.</p>
       
       <hr style="border-color: rgba(42,208,122,0.3);" />
@@ -690,14 +690,14 @@ def disparar_alertas():
 
     html += """
       <br />
-      <p style="font-size: 12px; color: #7aaf8e;">Apex Tech Metais — Sistema de Gestão Financeira</p>
+      <p style="font-size: 12px; color: #7aaf8e;">ApexTech Metais — Sistema de Gestão Financeira</p>
     </div>
     """
 
     sucessos = 0
     erros = []
     for dest in emails_destinatarios:
-        ok, msg = enviar_email_alerta(dest, f"🚨 [Apex Tech] Alerta de Vencimentos - {hoje.strftime('%d/%m/%Y')}", html)
+        ok, msg = enviar_email_alerta(dest, f"🚨 [ApexTech] Alerta de Vencimentos - {hoje.strftime('%d/%m/%Y')}", html)
         if ok:
             sucessos += 1
         else:
@@ -784,13 +784,13 @@ def gerar_recibo_pdf(nota_id):
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Cabeçalho Apex Tech
+    # Cabeçalho ApexTech
     p.setFillColorRGB(0.05, 0.16, 0.10) # #0E291B
     p.rect(0, height - 100, width, 100, fill=1)
 
     p.setFillColorRGB(0.16, 0.81, 0.48) # #2AD07A
     p.setFont("Helvetica-Bold", 22)
-    p.drawString(40, height - 45, "APEX TECH METAIS")
+    p.drawString(40, height - 45, "APEXTECH METAIS")
 
     p.setFillColorRGB(1, 1, 1)
     p.setFont("Helvetica", 11)
@@ -845,7 +845,7 @@ def gerar_recibo_pdf(nota_id):
     p.line(320, y, 540, y)
     y -= 15
     p.setFont("Helvetica", 10)
-    p.drawString(40, y, "Apex Tech Metais (Emitente)")
+    p.drawString(40, y, "ApexTech Metais (Emitente)")
     p.drawString(320, y, f"{nota.cliente_fornecedor or 'Cliente / Fornecedor'}")
 
     p.showPage()
@@ -856,6 +856,7 @@ def gerar_recibo_pdf(nota_id):
     res.headers["Content-Disposition"] = f"attachment; filename=Recibo_ApexTech_{nota.id}.pdf"
     res.headers["Content-Type"] = "application/pdf"
     return res
+
 
 
 
