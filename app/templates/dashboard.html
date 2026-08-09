@@ -3,7 +3,8 @@
 {% block content %}
 <h4 class="mb-3">Documentos</h4>
 
-<form method="get" class="row g-2 mb-4 align-items-end card p-3 shadow-sm border-0" style="background: rgba(14, 41, 27, 0.4);">
+<form method="get" class="row g-2 mb-4 align-items-end card p-3 shadow-sm border-0 m-0 w-100" style="background: rgba(14, 41, 27, 0.6); border: 1px solid rgba(42, 208, 122, 0.2) !important;">
+
   <div class="col-6 col-md-2">
     <label class="form-label small">Emissão De</label>
     <input type="date" name="data_inicio" class="form-control form-control-sm" value="{{ filtros.get('data_inicio', '') }}">
