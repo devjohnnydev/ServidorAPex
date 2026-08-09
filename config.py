@@ -29,9 +29,24 @@ class Config:
     MAX_CONTENT_LENGTH = 15 * 1024 * 1024  # 15 MB por arquivo
     ALLOWED_EXTENSIONS = {"pdf", "jpg", "jpeg", "png", "webp", "heic"}
 
-    CATEGORIAS = ["Venda", "Compra", "Serviço", "Despesa", "Imposto", "Outro"]
+    CATEGORIAS = [
+        "Conta de Luz",
+        "Conta de Água",
+        "Aluguel",
+        "Impostos & Taxas",
+        "Compra de Sucata / E-waste",
+        "Venda de Materiais / Metais",
+        "Frete & Logística",
+        "Manutenção de Maquinário",
+        "Folha / Salários",
+        "Serviço",
+        "Outro",
+    ]
 
     TIPOS_DOCUMENTO = ["Boleto", "NF-e", "Contrato", "Foto", "Recibo", "Outro"]
 
+    STATUS_FINANCEIRO = ["Pendente", "Pago", "Recebido", "Cancelado"]
+
     # URL publica do ApexAmostra para login federado (vazio = desativado)
     APEX_AMOSTRA_URL = os.environ.get("APEX_AMOSTRA_URL", "")
+

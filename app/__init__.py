@@ -50,9 +50,11 @@ def create_app():
         return {
             "categorias": app.config["CATEGORIAS"],
             "tipos_documento": app.config["TIPOS_DOCUMENTO"],
+            "status_financeiro": app.config["STATUS_FINANCEIRO"],
         }
 
     return app
+
 
 
 def _migrar_colunas(db):
@@ -65,9 +67,29 @@ def _migrar_colunas(db):
             db.session.execute(
                 text("ALTER TABLE nota ADD COLUMN tipo_documento VARCHAR(40) DEFAULT 'Outro'")
             )
-            db.session.commit()
+        if "data_vencimento" not in colunas_nota:
+            db.session.execute(
+                text("ALTER TABLE nota ADD COLUMN data_vencimento DATE")
+            )
+        if "data_pagamento" not in colunas_nota:
+            db.session.execute(
+                text("ALTER TABLE nota ADD COLUMN data_pagamento DATE")
+            )
+        if "status" not in colunas_nota:
+            db.session.execute(
+                text("ALTER TABLE nota ADD COLUMN status VARCHAR(20) DEFAULT 'Pendente'")
+            )
+            # Para notas ja existentes, atualizar data_vencimento = data_emissao e status de acordo com o tipo
+            db.session.execute(
+                text("UPDATE nota SET data_vencimento = data_emissao WHERE data_vencimento IS NULL")
+            )
+            db.session.execute(
+                text("UPDATE nota SET status = CASE WHEN tipo = 'entrada' THEN 'Recebido' ELSE 'Pago' END WHERE status IS NULL OR status = 'Pendente'")
+            )
+        db.session.commit()
     except Exception:
         db.session.rollback()
+
 
 
 def register_cli(app):

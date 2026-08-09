@@ -44,22 +44,39 @@
           <label class="form-label">Número da nota</label>
           <input type="text" name="numero_nota" class="form-control" value="{{ nota.numero_nota or '' }}">
         </div>
-        <div class="col-6">
+        <div class="col-6 col-md-3">
           <label class="form-label">Data de emissão</label>
           <input type="date" name="data_emissao" class="form-control" value="{{ nota.data_emissao.isoformat() }}" required>
         </div>
-        <div class="col-8">
-          <label class="form-label">Cliente/Fornecedor</label>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Data de vencimento</label>
+          <input type="date" name="data_vencimento" class="form-control" value="{{ nota.data_vencimento.isoformat() if nota.data_vencimento else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Data de pagamento/rec.</label>
+          <input type="date" name="data_pagamento" class="form-control" value="{{ nota.data_pagamento.isoformat() if nota.data_pagamento else '' }}">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            {% for st in status_financeiro %}
+            <option value="{{ st }}" {% if (nota.status or 'Pendente') == st %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-8 col-md-8">
+          <label class="form-label">Cliente / Fornecedor</label>
           <input type="text" name="cliente_fornecedor" class="form-control" value="{{ nota.cliente_fornecedor or '' }}">
         </div>
-        <div class="col-4">
+        <div class="col-4 col-md-4">
           <label class="form-label">Valor (R$)</label>
           <input type="text" name="valor" class="form-control" value="{{ nota.valor }}" required>
         </div>
         <div class="col-12">
-          <label class="form-label">Observações</label>
+          <label class="form-label">Observações / Detalhes</label>
           <textarea name="descricao" class="form-control" rows="2">{{ nota.descricao or '' }}</textarea>
         </div>
+
       </div>
 
       <div class="d-flex gap-2 mt-3">

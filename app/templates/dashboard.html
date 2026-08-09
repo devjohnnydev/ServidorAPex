@@ -3,24 +3,42 @@
 {% block content %}
 <h4 class="mb-3">Documentos</h4>
 
-<form method="get" class="row g-2 mb-4 align-items-end">
+<form method="get" class="row g-2 mb-4 align-items-end card p-3 shadow-sm border-0" style="background: rgba(14, 41, 27, 0.4);">
   <div class="col-6 col-md-2">
-    <label class="form-label small">De</label>
+    <label class="form-label small">Emissão De</label>
     <input type="date" name="data_inicio" class="form-control form-control-sm" value="{{ filtros.get('data_inicio', '') }}">
   </div>
   <div class="col-6 col-md-2">
-    <label class="form-label small">Até</label>
+    <label class="form-label small">Emissão Até</label>
     <input type="date" name="data_fim" class="form-control form-control-sm" value="{{ filtros.get('data_fim', '') }}">
   </div>
   <div class="col-6 col-md-2">
-    <label class="form-label small">Tipo</label>
+    <label class="form-label small">Vencimento De</label>
+    <input type="date" name="venc_inicio" class="form-control form-control-sm" value="{{ filtros.get('venc_inicio', '') }}">
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="form-label small">Vencimento Até</label>
+    <input type="date" name="venc_fim" class="form-control form-control-sm" value="{{ filtros.get('venc_fim', '') }}">
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="form-label small">Tipo (Fluxo)</label>
     <select name="tipo" class="form-select form-select-sm">
       <option value="">Todos</option>
-      <option value="entrada" {% if filtros.get('tipo') == 'entrada' %}selected{% endif %}>Entrada</option>
-      <option value="saida" {% if filtros.get('tipo') == 'saida' %}selected{% endif %}>Saída</option>
+      <option value="entrada" {% if filtros.get('tipo') == 'entrada' %}selected{% endif %}>Entrada (Receber)</option>
+      <option value="saida" {% if filtros.get('tipo') == 'saida' %}selected{% endif %}>Saída (Pagar)</option>
     </select>
   </div>
   <div class="col-6 col-md-2">
+    <label class="form-label small">Status</label>
+    <select name="status" class="form-select form-select-sm">
+      <option value="">Todos</option>
+      {% for st in status_financeiro %}
+      <option value="{{ st }}" {% if filtros.get('status') == st %}selected{% endif %}>{{ st }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-6 col-md-3">
     <label class="form-label small">Categoria</label>
     <select name="categoria" class="form-select form-select-sm">
       <option value="">Todas</option>
@@ -29,8 +47,8 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Tipo de documento</label>
+  <div class="col-6 col-md-3">
+    <label class="form-label small">Tipo de Documento</label>
     <select name="tipo_documento" class="form-select form-select-sm">
       <option value="">Todos</option>
       {% for td in tipos_documento %}
@@ -38,8 +56,8 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Cliente/Fornecedor</label>
+  <div class="col-6 col-md-3">
+    <label class="form-label small">Cliente / Fornecedor</label>
     <select name="cliente" class="form-select form-select-sm">
       <option value="">Todos</option>
       {% for cf in clientes %}
@@ -47,42 +65,71 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-8 col-md-3">
-    <label class="form-label small">Busca livre (nº nota, descrição…)</label>
+  <div class="col-6 col-md-3">
+    <label class="form-label small">Cadastrado por</label>
+    <select name="cadastrado_por" class="form-select form-select-sm">
+      <option value="">Todos os usuários</option>
+      {% for u in usuarios %}
+      <option value="{{ u.id }}" {% if filtros.get('cadastrado_por') == u.id|string %}selected{% endif %}>{{ u.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-12 col-md-6 mt-2">
+    <label class="form-label small">Busca livre (Nº nota, Descrição...)</label>
     <input type="text" name="busca" class="form-control form-control-sm" value="{{ filtros.get('busca', '') }}">
   </div>
-  <div class="col-4 col-md-1">
-    <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
+  <div class="col-6 col-md-3 mt-2 d-flex align-items-center">
+    <div class="form-check form-switch mt-3">
+      <input class="form-check-input" type="checkbox" name="somente_atrasadas" value="1" id="switchAtrasadas" {% if filtros.get('somente_atrasadas') == '1' %}checked{% endif %}>
+      <label class="form-check-input-label text-warning fw-bold small" for="switchAtrasadas">
+        <i class="fa-solid fa-triangle-exclamation text-danger"></i> Somente Atrasadas
+      </label>
+    </div>
   </div>
-  {% if filtros %}
-  <div class="col-auto">
+  <div class="col-6 col-md-3 mt-2 d-flex gap-2 justify-content-end">
+    <button type="submit" class="btn btn-primary btn-sm px-4">Filtrar</button>
+    {% if filtros %}
     <a href="{{ url_for('notas.dashboard') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+    {% endif %}
   </div>
-  {% endif %}
 </form>
 
+{# --- CARDS DE RESUMO FINANCEIRO CORPORATIVO --- #}
 <div class="row mb-4 g-2">
-  <div class="col-4">
-    <div class="card text-bg-success h-100">
+  <div class="col-6 col-md-3">
+    <div class="card text-bg-success h-100 shadow-sm">
       <div class="card-body py-2">
-        <div class="small">Entradas</div>
-        <div class="fs-5">R$ {{ "%.2f"|format(total_entradas) }}</div>
+        <div class="small opacity-75"><i class="fa-solid fa-circle-arrow-down me-1"></i> Recebido (Efetivado)</div>
+        <div class="fs-5 fw-bold">R$ {{ "%.2f"|format(total_entradas) }}</div>
+        <div class="small text-light" style="font-size: 0.75rem;">A Receber: R$ {{ "%.2f"|format(total_a_receber) }}</div>
       </div>
     </div>
   </div>
-  <div class="col-4">
-    <div class="card text-bg-danger h-100">
+  <div class="col-6 col-md-3">
+    <div class="card text-bg-danger h-100 shadow-sm">
       <div class="card-body py-2">
-        <div class="small">Saídas</div>
-        <div class="fs-5">R$ {{ "%.2f"|format(total_saidas) }}</div>
+        <div class="small opacity-75"><i class="fa-solid fa-circle-arrow-up me-1"></i> Pago (Efetivado)</div>
+        <div class="fs-5 fw-bold">R$ {{ "%.2f"|format(total_saidas) }}</div>
+        <div class="small text-light" style="font-size: 0.75rem;">A Pagar: R$ {{ "%.2f"|format(total_a_pagar) }}</div>
       </div>
     </div>
   </div>
-  <div class="col-4">
-    <div class="card text-bg-dark h-100">
+  <div class="col-6 col-md-3">
+    <div class="card h-100 shadow-sm" style="background: linear-gradient(135deg, #701a1a 0%, #4a0d0d 100%); border: 1px solid rgba(255, 77, 77, 0.5);">
       <div class="card-body py-2">
-        <div class="small">Saldo</div>
-        <div class="fs-5">R$ {{ "%.2f"|format(saldo) }}</div>
+        <div class="small text-warning fw-bold"><i class="fa-solid fa-clock text-danger me-1"></i> Contas Atrasadas</div>
+        <div class="fs-5 fw-bold text-white">R$ {{ "%.2f"|format(total_atrasadas_valor) }}</div>
+        <div class="small text-warning" style="font-size: 0.75rem;">{{ qtd_atrasadas }} pendência(s) com atraso</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-bg-dark h-100 shadow-sm">
+      <div class="card-body py-2">
+        <div class="small opacity-75"><i class="fa-solid fa-scale-balanced me-1"></i> Saldo Realizado</div>
+        <div class="fs-5 fw-bold {% if saldo >= 0 %}text-success{% else %}text-danger{% endif %}">R$ {{ "%.2f"|format(saldo) }}</div>
+        <div class="small text-muted" style="font-size: 0.75rem;">Recebido menos Pago</div>
       </div>
     </div>
   </div>
@@ -94,34 +141,58 @@
   <table class="table table-striped align-middle">
     <thead>
       <tr>
-        <th>Data</th><th>Tipo</th><th>Documento</th><th>Categoria</th>
-        <th>Cliente/Fornecedor</th><th>Nº</th>
-        <th class="text-end">Valor</th><th>Enviado por</th><th></th>
+        <th>Vencimento</th>
+        <th>Emissão</th>
+        <th>Fluxo</th>
+        <th>Status</th>
+        <th>Categoria</th>
+        <th>Cliente / Fornecedor</th>
+        <th>Nº Nota</th>
+        <th class="text-end">Valor</th>
+        <th>Cadastrado por</th>
+        <th class="text-end">Ações</th>
       </tr>
     </thead>
     <tbody>
     {% for n in notas %}
-      <tr>
-        <td>{{ n.data_emissao.strftime('%d/%m/%Y') }}</td>
-        <td><span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ n.tipo }}</span></td>
+      <tr class="{% if n.is_atrasada %}table-danger-custom{% endif %}">
         <td>
-          {% set doc = n.tipo_documento or 'Outro' %}
-          {% if doc == 'Boleto' %}<span class="badge bg-warning text-dark">{{ doc }}</span>
-          {% elif doc == 'NF-e' %}<span class="badge bg-info text-dark">{{ doc }}</span>
-          {% elif doc == 'Contrato' %}<span class="badge bg-primary">{{ doc }}</span>
-          {% elif doc == 'Foto' %}<span class="badge bg-secondary">{{ doc }}</span>
-          {% elif doc == 'Recibo' %}<span class="badge bg-dark">{{ doc }}</span>
-          {% else %}<span class="badge bg-light text-dark">{{ doc }}</span>{% endif %}
+          {% if n.data_vencimento %}
+            <span class="{% if n.is_atrasada %}fw-bold text-danger{% endif %}">
+              {{ n.data_vencimento.strftime('%d/%m/%Y') }}
+            </span>
+          {% else %}
+            —
+          {% endif %}
         </td>
-        <td>{{ n.categoria }}</td>
-        <td>{{ n.cliente_fornecedor or '—' }}</td>
-        <td>{{ n.numero_nota or '—' }}</td>
-        <td class="text-end">R$ {{ "%.2f"|format(n.valor) }}</td>
-        <td>{{ n.enviado_por.nome }}</td>
+        <td class="text-muted small">{{ n.data_emissao.strftime('%d/%m/%Y') }}</td>
+        <td>
+          <span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">
+            {{ 'A Receber' if n.tipo == 'entrada' else 'A Pagar' }}
+          </span>
+        </td>
+        <td>
+          {% if n.is_atrasada %}
+            <span class="badge bg-danger animate-pulse"><i class="fa-solid fa-triangle-exclamation me-1"></i> ATRASADA</span>
+          {% elif n.status == 'Pago' or n.status == 'Recebido' %}
+            <span class="badge bg-success">{{ n.status }}</span>
+          {% elif n.status == 'Cancelado' %}
+            <span class="badge bg-secondary">{{ n.status }}</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">{{ n.status or 'Pendente' }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge bg-dark border border-secondary text-light">{{ n.categoria }}</span>
+        </td>
+        <td><strong>{{ n.cliente_fornecedor or '—' }}</strong></td>
+        <td class="small">{{ n.numero_nota or '—' }}</td>
+        <td class="text-end fw-bold">R$ {{ "%.2f"|format(n.valor) }}</td>
+        <td class="small text-muted"><i class="fa-solid fa-user-circle me-1"></i>{{ n.enviado_por.nome }}</td>
         <td class="text-end">
-          <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank">Ver</a>
+          <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver Arquivo"><i class="fa-solid fa-file"></i></a>
           {% if n.pode_editar(current_user) %}
-          <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+          <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fa-solid fa-pen"></i></a>
           {% endif %}
         </td>
       </tr>
@@ -133,28 +204,29 @@
 {# --- Cards mobile --- #}
 <div class="d-md-none">
   {% for n in notas %}
-  <div class="card mb-2">
+  <div class="card mb-2 {% if n.is_atrasada %}border-danger border-2{% endif %}">
     <div class="card-body py-2">
       <div class="d-flex justify-content-between align-items-start">
         <strong>{{ n.cliente_fornecedor or "—" }}</strong>
-        <div class="d-flex gap-1">
-          <span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ n.tipo }}</span>
-          {% set doc = n.tipo_documento or 'Outro' %}
-          {% if doc == 'Boleto' %}<span class="badge bg-warning text-dark">{{ doc }}</span>
-          {% elif doc == 'NF-e' %}<span class="badge bg-info text-dark">{{ doc }}</span>
-          {% elif doc == 'Contrato' %}<span class="badge bg-primary">{{ doc }}</span>
-          {% elif doc == 'Recibo' %}<span class="badge bg-dark">{{ doc }}</span>
-          {% elif doc == 'Foto' %}<span class="badge bg-secondary">{{ doc }}</span>
-          {% else %}<span class="badge bg-light text-dark">{{ doc }}</span>{% endif %}
+        <div class="d-flex gap-1 flex-wrap justify-content-end">
+          {% if n.is_atrasada %}
+            <span class="badge bg-danger"><i class="fa-solid fa-triangle-exclamation"></i> ATRASADA</span>
+          {% endif %}
+          <span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ 'A Receber' if n.tipo == 'entrada' else 'A Pagar' }}</span>
+          <span class="badge bg-info text-dark">{{ n.status or 'Pendente' }}</span>
         </div>
       </div>
-      <div class="small text-muted">{{ n.data_emissao.strftime('%d/%m/%Y') }} · {{ n.categoria }} · Nº {{ n.numero_nota or '—' }}</div>
-      <div class="fw-bold">R$ {{ "%.2f"|format(n.valor) }}</div>
-      <div class="small text-muted">Enviado por {{ n.enviado_por.nome }}</div>
-      <div class="mt-2">
-        <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank">Ver arquivo</a>
+      <div class="small mt-1">
+        <span class="text-warning">Venc: {{ n.data_vencimento.strftime('%d/%m/%Y') if n.data_vencimento else '—' }}</span> · 
+        <span class="text-muted">Emissão: {{ n.data_emissao.strftime('%d/%m/%Y') }}</span>
+      </div>
+      <div class="small text-muted">{{ n.categoria }} · Nº {{ n.numero_nota or '—' }}</div>
+      <div class="fw-bold fs-6 mt-1">R$ {{ "%.2f"|format(n.valor) }}</div>
+      <div class="small text-muted" style="font-size:0.78rem;">Cadastrado por {{ n.enviado_por.nome }}</div>
+      <div class="mt-2 d-flex gap-2">
+        <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary flex-fill text-center" target="_blank">Ver arquivo</a>
         {% if n.pode_editar(current_user) %}
-        <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+        <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary flex-fill text-center">Editar</a>
         {% endif %}
       </div>
     </div>
@@ -162,6 +234,10 @@
   {% endfor %}
 </div>
 {% else %}
-<p class="text-muted">Nenhum documento encontrado com esses filtros.</p>
+<div class="alert alert-info text-center py-4">
+  <i class="fa-solid fa-folder-open fs-2 mb-2 d-block"></i>
+  Nenhum documento ou conta encontrada com os filtros selecionados.
+</div>
 {% endif %}
 {% endblock %}
+

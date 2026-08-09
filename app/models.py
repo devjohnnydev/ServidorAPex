@@ -34,6 +34,9 @@ class Nota(db.Model):
     cliente_fornecedor = db.Column(db.String(150))
     valor = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     data_emissao = db.Column(db.Date, nullable=False)
+    data_vencimento = db.Column(db.Date, nullable=True)
+    data_pagamento = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="Pendente")  # Pendente, Pago, Recebido, Cancelado
     descricao = db.Column(db.Text)
 
     arquivo_nome = db.Column(db.String(255), nullable=False)  # nome salvo em disco
@@ -44,5 +47,12 @@ class Nota(db.Model):
 
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
+    @property
+    def is_atrasada(self):
+        if self.status == "Pendente" and self.data_vencimento:
+            return self.data_vencimento < datetime.utcnow().date()
+        return False
+
     def pode_editar(self, user):
         return user.is_admin or self.enviado_por_id == user.id
+

@@ -41,22 +41,35 @@
           <label class="form-label">Número da nota</label>
           <input type="text" name="numero_nota" class="form-control">
         </div>
-        <div class="col-6">
+        <div class="col-6 col-md-4">
           <label class="form-label">Data de emissão</label>
           <input type="date" name="data_emissao" class="form-control" value="{{ hoje }}" required>
         </div>
-        <div class="col-8">
-          <label class="form-label">Cliente/Fornecedor</label>
+        <div class="col-6 col-md-4">
+          <label class="form-label">Data de vencimento</label>
+          <input type="date" name="data_vencimento" class="form-control" value="{{ hoje }}">
+        </div>
+        <div class="col-6 col-md-4">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            {% for st in status_financeiro %}
+            <option value="{{ st }}">{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-8 col-md-8">
+          <label class="form-label">Cliente / Fornecedor</label>
           <input type="text" name="cliente_fornecedor" class="form-control">
         </div>
-        <div class="col-4">
+        <div class="col-4 col-md-4">
           <label class="form-label">Valor (R$)</label>
           <input type="text" name="valor" class="form-control" placeholder="0,00" required>
         </div>
         <div class="col-12">
-          <label class="form-label">Observações</label>
+          <label class="form-label">Observações / Detalhes</label>
           <textarea name="descricao" class="form-control" rows="2"></textarea>
         </div>
+
       </div>
 
       <button type="submit" class="btn btn-primary mt-3 w-100">Enviar nota</button>
