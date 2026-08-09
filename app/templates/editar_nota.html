@@ -7,14 +7,33 @@
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-      <div class="mb-3">
-        <label class="form-label">Arquivo atual</label>
-        <div>
-          <a href="{{ url_for('notas.baixar_arquivo', nota_id=nota.id) }}" target="_blank">{{ nota.arquivo_nome_original }}</a>
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Arquivo Principal Atual</label>
+          <div>
+            <a href="{{ url_for('notas.baixar_arquivo', nota_id=nota.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary mb-2">
+              <i class="fa-solid fa-file-pdf me-1"></i> {{ nota.arquivo_nome_original }}
+            </a>
+          </div>
+          <label class="form-label small">Substituir Arquivo Principal (Opcional)</label>
+          <input type="file" name="arquivo" class="form-control" accept=".pdf,image/*" capture="environment">
         </div>
-        <label class="form-label mt-2">Substituir arquivo (opcional)</label>
-        <input type="file" name="arquivo" class="form-control" accept=".pdf,image/*" capture="environment">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Comprovante de Pagamento / PIX</label>
+          <div>
+            {% if nota.comprovante_nome %}
+            <a href="{{ url_for('notas.baixar_comprovante', nota_id=nota.id) }}" target="_blank" class="btn btn-sm btn-outline-success mb-2">
+              <i class="fa-solid fa-receipt me-1"></i> {{ nota.comprovante_nome_original or 'Ver Comprovante' }}
+            </a>
+            {% else %}
+            <span class="badge bg-secondary mb-2">Nenhum comprovante anexado</span>
+            {% endif %}
+          </div>
+          <label class="form-label small">Anexar / Substituir Comprovante (Opcional)</label>
+          <input type="file" name="comprovante" class="form-control" accept=".pdf,image/*" capture="environment">
+        </div>
       </div>
+
 
       <div class="row g-3">
         <div class="col-6">

@@ -5,15 +5,35 @@ from decimal import Decimal, InvalidOperation
 
 from flask import (
     Blueprint, render_template, request, redirect, url_for, flash,
-    send_from_directory, current_app, abort
+    send_from_directory, current_app, abort, response, make_response
 )
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
 from . import db
-from .models import Nota, User
+from .models import Nota, User, Categoria, LogAuditoria
 
 notas_bp = Blueprint("notas", __name__)
+
+
+def registrar_log(acao, detalhes=None):
+    """Registra uma acao no log de auditoria do sistema."""
+    try:
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+        if ip and "," in ip:
+            ip = ip.split(",")[0].strip()
+        log = LogAuditoria(
+            usuario_id=current_user.id if current_user.is_authenticated else None,
+            usuario_nome=current_user.nome if current_user.is_authenticated else "Sistema",
+            acao=acao,
+            detalhes=detalhes,
+            ip_address=ip
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 
 
 def arquivo_permitido(nome_arquivo):
@@ -167,6 +187,14 @@ def upload():
         data_pagamento = parse_data(request.form.get("data_pagamento"), None)
         status = request.form.get("status", "Pendente")
 
+        comprovante = request.files.get("comprovante")
+        comprovante_salvo = None
+        comprovante_orig = None
+        if comprovante and comprovante.filename:
+            if arquivo_permitido(comprovante.filename):
+                comprovante_salvo = salvar_arquivo(comprovante)
+                comprovante_orig = comprovante.filename
+
         nota = Nota(
             numero_nota=request.form.get("numero_nota", "").strip(),
             tipo=request.form.get("tipo", "entrada"),
@@ -180,12 +208,19 @@ def upload():
             status=status,
             descricao=request.form.get("descricao", "").strip(),
             arquivo_nome_original=arquivo.filename,
+            comprovante_nome=comprovante_salvo,
+            comprovante_nome_original=comprovante_orig,
             enviado_por_id=current_user.id,
         )
         nota.arquivo_nome = salvar_arquivo(arquivo)
 
         db.session.add(nota)
         db.session.commit()
+
+        registrar_log(
+            "Criou Documento",
+            f"Nota/Doc {nota.numero_nota or nota.id} ({nota.tipo.upper()}) - R$ {nota.valor} - Cliente/Forn: {nota.cliente_fornecedor}"
+        )
         flash("Nota cadastrada com sucesso.", "success")
         return redirect(url_for("notas.dashboard"))
 
@@ -200,6 +235,7 @@ def editar(nota_id):
         abort(403)
 
     if request.method == "POST":
+        status_antigo = nota.status
         nota.numero_nota = request.form.get("numero_nota", "").strip()
         nota.tipo = request.form.get("tipo", "entrada")
         nota.tipo_documento = request.form.get("tipo_documento", nota.tipo_documento or "Outro")
@@ -212,7 +248,6 @@ def editar(nota_id):
         nota.status = request.form.get("status", nota.status or "Pendente")
         nota.descricao = request.form.get("descricao", "").strip()
 
-
         novo_arquivo = request.files.get("arquivo")
         if novo_arquivo and novo_arquivo.filename:
             if not arquivo_permitido(novo_arquivo.filename):
@@ -224,8 +259,27 @@ def editar(nota_id):
             nota.arquivo_nome_original = novo_arquivo.filename
             nota.arquivo_nome = salvar_arquivo(novo_arquivo)
 
+        novo_comprovante = request.files.get("comprovante")
+        if novo_comprovante and novo_comprovante.filename:
+            if arquivo_permitido(novo_comprovante.filename):
+                if nota.comprovante_nome:
+                    caminho_antigo_comp = os.path.join(current_app.config["UPLOAD_FOLDER"], nota.comprovante_nome)
+                    if os.path.exists(caminho_antigo_comp):
+                        os.remove(caminho_antigo_comp)
+                nota.comprovante_nome_original = novo_comprovante.filename
+                nota.comprovante_nome = salvar_arquivo(novo_comprovante)
+
         db.session.commit()
-        flash("Nota atualizada.", "success")
+
+        acao_msg = f"Editou Documento ID #{nota.id}"
+        if status_antigo != nota.status:
+            acao_msg = f"Alterou Status para '{nota.status}' no Doc #{nota.id}"
+
+        registrar_log(
+            acao_msg,
+            f"Nº {nota.numero_nota} - R$ {nota.valor} - Status: {nota.status}"
+        )
+        flash("Nota atualizada com sucesso.", "success")
         return redirect(url_for("notas.dashboard"))
 
     return render_template("editar_nota.html", nota=nota)
@@ -242,10 +296,19 @@ def excluir(nota_id):
     if os.path.exists(caminho):
         os.remove(caminho)
 
+    if nota.comprovante_nome:
+        caminho_comp = os.path.join(current_app.config["UPLOAD_FOLDER"], nota.comprovante_nome)
+        if os.path.exists(caminho_comp):
+            os.remove(caminho_comp)
+
+    detalhes_log = f"Nota Nº {nota.numero_nota or nota.id} - R$ {nota.valor} - Fornecedor: {nota.cliente_fornecedor}"
     db.session.delete(nota)
     db.session.commit()
+
+    registrar_log("Excluiu Documento", detalhes_log)
     flash("Nota excluída.", "info")
     return redirect(url_for("notas.dashboard"))
+
 
 
 from .models import Nota, User, Categoria
@@ -274,14 +337,155 @@ def criar_categoria():
     return redirect(request.referrer or url_for("notas.dashboard"))
 
 
-@notas_bp.route("/notas/<int:nota_id>/arquivo")
+@notas_bp.route("/notas/<int:nota_id>/comprovante")
 @login_required
-def baixar_arquivo(nota_id):
+def baixar_comprovante(nota_id):
     nota = Nota.query.get_or_404(nota_id)
+    if not nota.comprovante_nome:
+        abort(404)
     return send_from_directory(
         current_app.config["UPLOAD_FOLDER"],
-        nota.arquivo_nome,
+        nota.comprovante_nome,
         as_attachment=False,
-        download_name=nota.arquivo_nome_original,
+        download_name=nota.comprovante_nome_original or "comprovante.pdf",
     )
+
+
+@notas_bp.route("/exportar/excel")
+@login_required
+def exportar_excel():
+    import io
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    query = Nota.query
+
+    data_inicio = request.args.get("data_inicio", "")
+    data_fim = request.args.get("data_fim", "")
+    venc_inicio = request.args.get("venc_inicio", "")
+    venc_fim = request.args.get("venc_fim", "")
+    tipo = request.args.get("tipo", "")
+    categoria = request.args.get("categoria", "")
+    tipo_documento = request.args.get("tipo_documento", "")
+    status_filtro = request.args.get("status", "")
+    cliente = request.args.get("cliente", "").strip()
+    cadastrado_por = request.args.get("cadastrado_por", "")
+    somente_atrasadas = request.args.get("somente_atrasadas", "")
+    busca = request.args.get("busca", "").strip()
+
+    hoje = datetime.utcnow().date()
+
+    if data_inicio:
+        d = parse_data(data_inicio)
+        if d:
+            query = query.filter(Nota.data_emissao >= d)
+    if data_fim:
+        d = parse_data(data_fim)
+        if d:
+            query = query.filter(Nota.data_emissao <= d)
+    if venc_inicio:
+        d = parse_data(venc_inicio)
+        if d:
+            query = query.filter(Nota.data_vencimento >= d)
+    if venc_fim:
+        d = parse_data(venc_fim)
+        if d:
+            query = query.filter(Nota.data_vencimento <= d)
+    if tipo in ("entrada", "saida"):
+        query = query.filter(Nota.tipo == tipo)
+    if categoria:
+        query = query.filter(Nota.categoria == categoria)
+    if tipo_documento:
+        query = query.filter(Nota.tipo_documento == tipo_documento)
+    if status_filtro:
+        query = query.filter(Nota.status == status_filtro)
+    if cadastrado_por and cadastrado_por.isdigit():
+        query = query.filter(Nota.enviado_por_id == int(cadastrado_por))
+    if somente_atrasadas == "1":
+        query = query.filter(Nota.status == "Pendente", Nota.data_vencimento < hoje)
+    if cliente:
+        query = query.filter(Nota.cliente_fornecedor.ilike(f"%{cliente}%"))
+    if busca:
+        like = f"%{busca}%"
+        query = query.filter(
+            db.or_(
+                Nota.cliente_fornecedor.ilike(like),
+                Nota.numero_nota.ilike(like),
+                Nota.descricao.ilike(like),
+            )
+        )
+
+    notas = query.order_by(Nota.data_vencimento.asc().nullslast(), Nota.data_emissao.desc()).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Relatório Financeiro"
+
+    # Estilos corporativos Apex Tech
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="0E291B", end_color="0E291B", fill_type="solid")
+    center_align = Alignment(horizontal="center", vertical="center")
+    right_align = Alignment(horizontal="right", vertical="center")
+    left_align = Alignment(horizontal="left", vertical="center")
+
+    headers = [
+        "ID", "Fluxo", "Status", "Vencimento", "Emissão", "Pagamento",
+        "Categoria", "Documento", "Nº Nota", "Cliente / Fornecedor",
+        "Valor (R$)", "Cadastrado por", "Possui Comprovante"
+    ]
+
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+
+    for n in notas:
+        row = [
+            n.id,
+            "A Receber (Entrada)" if n.tipo == "entrada" else "A Pagar (Saída)",
+            "ATRASADA" if n.is_atrasada else n.status,
+            n.data_vencimento.strftime("%d/%m/%Y") if n.data_vencimento else "",
+            n.data_emissao.strftime("%d/%m/%Y") if n.data_emissao else "",
+            n.data_pagamento.strftime("%d/%m/%Y") if n.data_pagamento else "",
+            n.categoria or "",
+            n.tipo_documento or "",
+            n.numero_nota or "",
+            n.cliente_fornecedor or "",
+            float(n.valor or 0),
+            n.enviado_por.nome if n.enviado_por else "",
+            "Sim" if n.comprovante_nome else "Não"
+        ]
+        ws.append(row)
+        row_idx = ws.max_row
+        ws.cell(row=row_idx, column=11).number_format = 'R$ #,##0.00'
+
+    # Ajustar largura de colunas automaticamente
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = openpyxl.utils.get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    registrar_log("Exportou Relatório Excel", f"Exportou {len(notas)} registros filtrados.")
+
+    res = make_response(output.getvalue())
+    res.headers["Content-Disposition"] = "attachment; filename=Relatorio_ApexTech_Financeiro.xlsx"
+    res.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return res
+
+
+@notas_bp.route("/auditoria")
+@login_required
+def auditoria():
+    if not current_user.is_admin:
+        abort(403)
+
+    logs = LogAuditoria.query.order_by(LogAuditoria.criado_em.desc()).limit(200).all()
+    return render_template("auditoria.html", logs=logs)
+
 

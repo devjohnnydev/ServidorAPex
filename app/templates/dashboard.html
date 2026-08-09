@@ -99,11 +99,15 @@
           </div>
         </div>
         <div class="col-6 col-md-3 mt-2 d-flex gap-2 justify-content-end">
-          <button type="submit" class="btn btn-primary btn-sm px-4">Filtrar</button>
+          <a href="{{ url_for('notas.exportar_excel', **filtros) }}" class="btn btn-outline-success btn-sm" title="Baixar relatório em Excel com filtros aplicados">
+            <i class="fa-solid fa-file-excel me-1"></i> Excel
+          </a>
+          <button type="submit" class="btn btn-primary btn-sm px-3">Filtrar</button>
           {% if filtros %}
           <a href="{{ url_for('notas.dashboard') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
           {% endif %}
         </div>
+
       </div>
     </form>
   </div>
@@ -205,7 +209,10 @@
         <td class="text-end fw-bold">R$ {{ "%.2f"|format(n.valor) }}</td>
         <td class="small text-muted"><i class="fa-solid fa-user-circle me-1"></i>{{ n.enviado_por.nome }}</td>
         <td class="text-end">
-          <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver Arquivo"><i class="fa-solid fa-file"></i></a>
+          <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver Nota/Documento"><i class="fa-solid fa-file-pdf"></i></a>
+          {% if n.comprovante_nome %}
+          <a href="{{ url_for('notas.baixar_comprovante', nota_id=n.id) }}" class="btn btn-sm btn-outline-success" target="_blank" title="Ver Comprovante de Pagamento PIX/Bancário"><i class="fa-solid fa-receipt"></i></a>
+          {% endif %}
           {% if n.pode_editar(current_user) %}
           <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fa-solid fa-pen"></i></a>
           {% endif %}
@@ -238,12 +245,16 @@
       <div class="small text-muted">{{ n.categoria }} · Nº {{ n.numero_nota or '—' }}</div>
       <div class="fw-bold fs-6 mt-1">R$ {{ "%.2f"|format(n.valor) }}</div>
       <div class="small text-muted" style="font-size:0.78rem;">Cadastrado por {{ n.enviado_por.nome }}</div>
-      <div class="mt-2 d-flex gap-2">
-        <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary flex-fill text-center" target="_blank">Ver arquivo</a>
+      <div class="mt-2 d-flex gap-1 flex-wrap">
+        <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary flex-fill text-center" target="_blank">Nota</a>
+        {% if n.comprovante_nome %}
+        <a href="{{ url_for('notas.baixar_comprovante', nota_id=n.id) }}" class="btn btn-sm btn-outline-success flex-fill text-center" target="_blank">Comprovante</a>
+        {% endif %}
         {% if n.pode_editar(current_user) %}
         <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary flex-fill text-center">Editar</a>
         {% endif %}
       </div>
+
     </div>
   </div>
   {% endfor %}

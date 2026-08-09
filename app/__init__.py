@@ -91,7 +91,16 @@ def _migrar_colunas(db):
             db.session.execute(
                 text("ALTER TABLE nota ADD COLUMN data_pagamento DATE")
             )
+        if "comprovante_nome" not in colunas_nota:
+            db.session.execute(
+                text("ALTER TABLE nota ADD COLUMN comprovante_nome VARCHAR(255)")
+            )
+        if "comprovante_nome_original" not in colunas_nota:
+            db.session.execute(
+                text("ALTER TABLE nota ADD COLUMN comprovante_nome_original VARCHAR(255)")
+            )
         if "status" not in colunas_nota:
+
             db.session.execute(
                 text("ALTER TABLE nota ADD COLUMN status VARCHAR(20) DEFAULT 'Pendente'")
             )

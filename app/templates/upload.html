@@ -7,11 +7,19 @@
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-      <div class="mb-3">
-        <label class="form-label">Arquivo (PDF ou foto da nota)</label>
-        <input type="file" name="arquivo" class="form-control" accept=".pdf,image/*" capture="environment" required>
-        <div class="form-text">No celular, você pode tirar a foto direto pela câmera.</div>
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">Arquivo Principal (Nota Fiscal / Boleto / Foto)</label>
+          <input type="file" name="arquivo" class="form-control" accept=".pdf,image/*" capture="environment" required>
+          <div class="form-text">PDF ou foto do documento original.</div>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label">Comprovante de Pagamento / PIX (Opcional)</label>
+          <input type="file" name="comprovante" class="form-control" accept=".pdf,image/*" capture="environment">
+          <div class="form-text">Comprovante bancário ou recibo de transferência.</div>
+        </div>
       </div>
+
 
       <div class="row g-3">
         <div class="col-6">

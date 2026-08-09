@@ -42,6 +42,9 @@ class Nota(db.Model):
     arquivo_nome = db.Column(db.String(255), nullable=False)  # nome salvo em disco
     arquivo_nome_original = db.Column(db.String(255), nullable=False)
 
+    comprovante_nome = db.Column(db.String(255), nullable=True)
+    comprovante_nome_original = db.Column(db.String(255), nullable=True)
+
     enviado_por_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     enviado_por = db.relationship("User", backref="notas")
 
@@ -61,5 +64,18 @@ class Categoria(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(80), unique=True, nullable=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class LogAuditoria(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    usuario_nome = db.Column(db.String(120), nullable=False)
+    acao = db.Column(db.String(80), nullable=False)  # Criou, Editou, Excluiu, Baixou Pagamento, etc.
+    detalhes = db.Column(db.Text, nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
+    usuario = db.relationship("User", backref="logs_auditoria")
+
 
 
