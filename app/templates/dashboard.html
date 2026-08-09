@@ -3,98 +3,104 @@
 {% block content %}
 <h4 class="mb-3">Documentos</h4>
 
-<form method="get" class="row g-2 mb-4 align-items-end card p-3 shadow-sm border-0 m-0 w-100" style="background: rgba(14, 41, 27, 0.6); border: 1px solid rgba(42, 208, 122, 0.2) !important;">
+<div class="card mb-4 border-0 shadow-sm" style="background: rgba(14, 41, 27, 0.6); border: 1px solid rgba(42, 208, 122, 0.2) !important;">
+  <div class="card-body p-3">
+    <form method="get">
+      <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-2">
+          <label class="form-label small">Emissão De</label>
+          <input type="date" name="data_inicio" class="form-control form-control-sm" value="{{ filtros.get('data_inicio', '') }}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">Emissão Até</label>
+          <input type="date" name="data_fim" class="form-control form-control-sm" value="{{ filtros.get('data_fim', '') }}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">Vencimento De</label>
+          <input type="date" name="venc_inicio" class="form-control form-control-sm" value="{{ filtros.get('venc_inicio', '') }}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">Vencimento Até</label>
+          <input type="date" name="venc_fim" class="form-control form-control-sm" value="{{ filtros.get('venc_fim', '') }}">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">Tipo (Fluxo)</label>
+          <select name="tipo" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <option value="entrada" {% if filtros.get('tipo') == 'entrada' %}selected{% endif %}>Entrada (Receber)</option>
+            <option value="saida" {% if filtros.get('tipo') == 'saida' %}selected{% endif %}>Saída (Pagar)</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label small">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            {% for st in status_financeiro %}
+            <option value="{{ st }}" {% if filtros.get('status') == st %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Emissão De</label>
-    <input type="date" name="data_inicio" class="form-control form-control-sm" value="{{ filtros.get('data_inicio', '') }}">
-  </div>
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Emissão Até</label>
-    <input type="date" name="data_fim" class="form-control form-control-sm" value="{{ filtros.get('data_fim', '') }}">
-  </div>
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Vencimento De</label>
-    <input type="date" name="venc_inicio" class="form-control form-control-sm" value="{{ filtros.get('venc_inicio', '') }}">
-  </div>
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Vencimento Até</label>
-    <input type="date" name="venc_fim" class="form-control form-control-sm" value="{{ filtros.get('venc_fim', '') }}">
-  </div>
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Tipo (Fluxo)</label>
-    <select name="tipo" class="form-select form-select-sm">
-      <option value="">Todos</option>
-      <option value="entrada" {% if filtros.get('tipo') == 'entrada' %}selected{% endif %}>Entrada (Receber)</option>
-      <option value="saida" {% if filtros.get('tipo') == 'saida' %}selected{% endif %}>Saída (Pagar)</option>
-    </select>
-  </div>
-  <div class="col-6 col-md-2">
-    <label class="form-label small">Status</label>
-    <select name="status" class="form-select form-select-sm">
-      <option value="">Todos</option>
-      {% for st in status_financeiro %}
-      <option value="{{ st }}" {% if filtros.get('status') == st %}selected{% endif %}>{{ st }}</option>
-      {% endfor %}
-    </select>
-  </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small">Categoria</label>
+          <select name="categoria" class="form-select form-select-sm">
+            <option value="">Todas</option>
+            {% for c in categorias %}
+            <option value="{{ c }}" {% if filtros.get('categoria') == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small">Tipo de Documento</label>
+          <select name="tipo_documento" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            {% for td in tipos_documento %}
+            <option value="{{ td }}" {% if filtros.get('tipo_documento') == td %}selected{% endif %}>{{ td }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small">Cliente / Fornecedor</label>
+          <select name="cliente" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            {% for cf in clientes %}
+            <option value="{{ cf }}" {% if filtros.get('cliente') == cf %}selected{% endif %}>{{ cf }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label small">Cadastrado por</label>
+          <select name="cadastrado_por" class="form-select form-select-sm">
+            <option value="">Todos os usuários</option>
+            {% for u in usuarios %}
+            <option value="{{ u.id }}" {% if filtros.get('cadastrado_por') == u.id|string %}selected{% endif %}>{{ u.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-  <div class="col-6 col-md-3">
-    <label class="form-label small">Categoria</label>
-    <select name="categoria" class="form-select form-select-sm">
-      <option value="">Todas</option>
-      {% for c in categorias %}
-      <option value="{{ c }}" {% if filtros.get('categoria') == c %}selected{% endif %}>{{ c }}</option>
-      {% endfor %}
-    </select>
+        <div class="col-12 col-md-6 mt-2">
+          <label class="form-label small">Busca livre (Nº nota, Descrição...)</label>
+          <input type="text" name="busca" class="form-control form-control-sm" value="{{ filtros.get('busca', '') }}">
+        </div>
+        <div class="col-6 col-md-3 mt-2 d-flex align-items-center">
+          <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" name="somente_atrasadas" value="1" id="switchAtrasadas" {% if filtros.get('somente_atrasadas') == '1' %}checked{% endif %}>
+            <label class="form-check-label text-warning fw-bold small ms-1" for="switchAtrasadas">
+              <i class="fa-solid fa-triangle-exclamation text-danger"></i> Somente Atrasadas
+            </label>
+          </div>
+        </div>
+        <div class="col-6 col-md-3 mt-2 d-flex gap-2 justify-content-end">
+          <button type="submit" class="btn btn-primary btn-sm px-4">Filtrar</button>
+          {% if filtros %}
+          <a href="{{ url_for('notas.dashboard') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+          {% endif %}
+        </div>
+      </div>
+    </form>
   </div>
-  <div class="col-6 col-md-3">
-    <label class="form-label small">Tipo de Documento</label>
-    <select name="tipo_documento" class="form-select form-select-sm">
-      <option value="">Todos</option>
-      {% for td in tipos_documento %}
-      <option value="{{ td }}" {% if filtros.get('tipo_documento') == td %}selected{% endif %}>{{ td }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-6 col-md-3">
-    <label class="form-label small">Cliente / Fornecedor</label>
-    <select name="cliente" class="form-select form-select-sm">
-      <option value="">Todos</option>
-      {% for cf in clientes %}
-      <option value="{{ cf }}" {% if filtros.get('cliente') == cf %}selected{% endif %}>{{ cf }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-6 col-md-3">
-    <label class="form-label small">Cadastrado por</label>
-    <select name="cadastrado_por" class="form-select form-select-sm">
-      <option value="">Todos os usuários</option>
-      {% for u in usuarios %}
-      <option value="{{ u.id }}" {% if filtros.get('cadastrado_por') == u.id|string %}selected{% endif %}>{{ u.nome }}</option>
-      {% endfor %}
-    </select>
-  </div>
+</div>
 
-  <div class="col-12 col-md-6 mt-2">
-    <label class="form-label small">Busca livre (Nº nota, Descrição...)</label>
-    <input type="text" name="busca" class="form-control form-control-sm" value="{{ filtros.get('busca', '') }}">
-  </div>
-  <div class="col-6 col-md-3 mt-2 d-flex align-items-center">
-    <div class="form-check form-switch mt-3">
-      <input class="form-check-input" type="checkbox" name="somente_atrasadas" value="1" id="switchAtrasadas" {% if filtros.get('somente_atrasadas') == '1' %}checked{% endif %}>
-      <label class="form-check-input-label text-warning fw-bold small" for="switchAtrasadas">
-        <i class="fa-solid fa-triangle-exclamation text-danger"></i> Somente Atrasadas
-      </label>
-    </div>
-  </div>
-  <div class="col-6 col-md-3 mt-2 d-flex gap-2 justify-content-end">
-    <button type="submit" class="btn btn-primary btn-sm px-4">Filtrar</button>
-    {% if filtros %}
-    <a href="{{ url_for('notas.dashboard') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
-    {% endif %}
-  </div>
-</form>
 
 {# --- CARDS DE RESUMO FINANCEIRO CORPORATIVO --- #}
 <div class="row mb-4 g-2">
