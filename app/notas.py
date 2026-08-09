@@ -151,6 +151,15 @@ def dashboard():
     # Lista de usuários cadastrado por para o dropdown
     usuarios = User.query.order_by(User.nome).all()
 
+    # Agrupamento para gráfico por Categoria
+    categorias_dict = {}
+    for n in notas:
+        cat = n.categoria or "Outro"
+        categorias_dict[cat] = categorias_dict.get(cat, Decimal("0")) + n.valor
+
+    chart_labels = list(categorias_dict.keys())
+    chart_values = [float(v) for v in categorias_dict.values()]
+
     return render_template(
         "dashboard.html",
         notas=notas,
@@ -165,7 +174,11 @@ def dashboard():
         clientes=clientes,
         usuarios=usuarios,
         hoje=hoje,
+        chart_labels=chart_labels,
+        chart_values=chart_values,
     )
+
+
 
 
 @notas_bp.route("/notas/nova", methods=["GET", "POST"])
