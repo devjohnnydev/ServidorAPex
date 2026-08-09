@@ -47,9 +47,12 @@ def create_app():
     @app.context_processor
     def inject_globals():
         from .models import Categoria
-        cats_db = [c.nome for c in Categoria.query.order_by(Categoria.nome).all()]
-        # Unir categorias padrao com do banco mantendo ordem e sem duplicatas
-        todas_categorias = list(dict.fromkeys(app.config["CATEGORIAS"] + cats_db))
+        todas_categorias = app.config["CATEGORIAS"]
+        try:
+            cats_db = [c.nome for c in Categoria.query.order_by(Categoria.nome).all()]
+            todas_categorias = list(dict.fromkeys(app.config["CATEGORIAS"] + cats_db))
+        except Exception:
+            db.session.rollback()
         return {
             "categorias": todas_categorias,
             "tipos_documento": app.config["TIPOS_DOCUMENTO"],
@@ -57,6 +60,7 @@ def create_app():
         }
 
     return app
+
 
 
 def _inicializar_categorias(app, db):
@@ -76,55 +80,40 @@ def _inicializar_categorias(app, db):
 def _migrar_colunas(db):
     """Adiciona colunas novas a tabelas ja existentes (safe migration)."""
     from sqlalchemy import text, inspect
+    inspector = inspect(db.engine)
+    
+    colunas_nota = []
     try:
-        inspector = inspect(db.engine)
         colunas_nota = [c["name"] for c in inspector.get_columns("nota")]
-        if "tipo_documento" not in colunas_nota:
-            db.session.execute(
-                text("ALTER TABLE nota ADD COLUMN tipo_documento VARCHAR(40) DEFAULT 'Outro'")
-            )
-        if "data_vencimento" not in colunas_nota:
-            db.session.execute(
-                text("ALTER TABLE nota ADD COLUMN data_vencimento DATE")
-            )
-        if "data_pagamento" not in colunas_nota:
-            db.session.execute(
-                text("ALTER TABLE nota ADD COLUMN data_pagamento DATE")
-            )
-        if "comprovante_nome" not in colunas_nota:
-            db.session.execute(
-                text("ALTER TABLE nota ADD COLUMN comprovante_nome VARCHAR(255)")
-            )
-        if "comprovante_nome_original" not in colunas_nota:
-            db.session.execute(
-                text("ALTER TABLE nota ADD COLUMN comprovante_nome_original VARCHAR(255)")
-            )
-        if "status" not in colunas_nota:
-
-            db.session.execute(
-                text("ALTER TABLE nota ADD COLUMN status VARCHAR(20) DEFAULT 'Pendente'")
-            )
-            # Para notas ja existentes, atualizar data_vencimento = data_emissao e status de acordo com o tipo
-            db.session.execute(
-                text("UPDATE nota SET data_vencimento = data_emissao WHERE data_vencimento IS NULL")
-            )
-            db.session.execute(
-                text("UPDATE nota SET status = CASE WHEN tipo = 'entrada' THEN 'Recebido' ELSE 'Pago' END WHERE status IS NULL OR status = 'Pendente'")
-            )
-        if "valor_pago" not in colunas_nota:
-            db.session.execute(
-                text("ALTER TABLE nota ADD COLUMN valor_pago NUMERIC(12,2) DEFAULT 0")
-            )
-        colunas_user = [c["name"] for c in inspector.get_columns("user")]
-
-        if "email" not in colunas_user:
-            db.session.execute(
-                text("ALTER TABLE user ADD COLUMN email VARCHAR(120)")
-            )
-        db.session.commit()
     except Exception:
+        pass
 
+    novas_colunas_nota = [
+        ("tipo_documento", "ALTER TABLE nota ADD COLUMN tipo_documento VARCHAR(40) DEFAULT 'Outro'"),
+        ("data_vencimento", "ALTER TABLE nota ADD COLUMN data_vencimento DATE"),
+        ("data_pagamento", "ALTER TABLE nota ADD COLUMN data_pagamento DATE"),
+        ("comprovante_nome", "ALTER TABLE nota ADD COLUMN comprovante_nome VARCHAR(255)"),
+        ("comprovante_nome_original", "ALTER TABLE nota ADD COLUMN comprovante_nome_original VARCHAR(255)"),
+        ("status", "ALTER TABLE nota ADD COLUMN status VARCHAR(20) DEFAULT 'Pendente'"),
+        ("valor_pago", "ALTER TABLE nota ADD COLUMN valor_pago NUMERIC(12,2) DEFAULT 0"),
+    ]
+
+    for col_nome, sql_cmd in novas_colunas_nota:
+        if col_nome not in colunas_nota:
+            try:
+                db.session.execute(text(sql_cmd))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+    try:
+        colunas_user = [c["name"] for c in inspector.get_columns("user")]
+        if "email" not in colunas_user:
+            db.session.execute(text("ALTER TABLE \"user\" ADD COLUMN email VARCHAR(120)"))
+            db.session.commit()
+    except Exception:
         db.session.rollback()
+
 
 
 
