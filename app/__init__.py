@@ -35,6 +35,11 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(notas_bp)
 
+    # Garante que as tabelas existam no banco (seguro em producao e local).
+    # Equivale a rodar `flask init-db` automaticamente no primeiro start.
+    with app.app_context():
+        db.create_all()
+
     register_cli(app)
 
     @app.context_processor
