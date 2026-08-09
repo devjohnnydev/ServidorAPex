@@ -33,6 +33,14 @@
           </select>
         </div>
         <div class="col-6">
+          <label class="form-label">Tipo de documento</label>
+          <select name="tipo_documento" class="form-select">
+            {% for td in tipos_documento %}
+            <option value="{{ td }}" {% if (nota.tipo_documento or 'Outro') == td %}selected{% endif %}>{{ td }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6">
           <label class="form-label">Número da nota</label>
           <input type="text" name="numero_nota" class="form-control" value="{{ nota.numero_nota or '' }}">
         </div>

@@ -26,17 +26,35 @@ def login():
         return redirect(url_for("notas.dashboard"))
 
     if request.method == "POST":
+        from flask import current_app
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
 
+        # 1. Tenta autenticacao local
         user = User.query.filter_by(username=username).first()
-        if user is None or not user.check_password(password) or not user.ativo:
-            flash("Usuário ou senha inválidos.", "danger")
-            return render_template("login.html")
+        if user and user.check_password(password) and user.ativo:
+            login_user(user, remember=True)
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("notas.dashboard"))
 
-        login_user(user, remember=True)
-        next_page = request.args.get("next")
-        return redirect(next_page or url_for("notas.dashboard"))
+        # 2. Fallback: tenta ApexAmostra (se URL configurada)
+        apex_url = current_app.config.get("APEX_AMOSTRA_URL", "")
+        if apex_url:
+            from .apex_auth import autenticar_apex, obter_ou_criar_shadow_user
+            resultado = autenticar_apex(apex_url, username, password)
+            if resultado:
+                shadow = obter_ou_criar_shadow_user(
+                    db, User,
+                    username=username,
+                    nome=resultado["nome"],
+                    is_admin=resultado["is_admin"],
+                )
+                login_user(shadow, remember=True)
+                next_page = request.args.get("next")
+                return redirect(next_page or url_for("notas.dashboard"))
+
+        flash("Usuário ou senha inválidos.", "danger")
+        return render_template("login.html")
 
     return render_template("login.html")
 

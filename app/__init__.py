@@ -41,14 +41,33 @@ def create_app():
     # Equivale a rodar `flask init-db` automaticamente no primeiro start.
     with app.app_context():
         db.create_all()
+        _migrar_colunas(db)
 
     register_cli(app)
 
     @app.context_processor
     def inject_globals():
-        return {"categorias": app.config["CATEGORIAS"]}
+        return {
+            "categorias": app.config["CATEGORIAS"],
+            "tipos_documento": app.config["TIPOS_DOCUMENTO"],
+        }
 
     return app
+
+
+def _migrar_colunas(db):
+    """Adiciona colunas novas a tabelas ja existentes (safe migration)."""
+    from sqlalchemy import text, inspect
+    try:
+        inspector = inspect(db.engine)
+        colunas_nota = [c["name"] for c in inspector.get_columns("nota")]
+        if "tipo_documento" not in colunas_nota:
+            db.session.execute(
+                text("ALTER TABLE nota ADD COLUMN tipo_documento VARCHAR(40) DEFAULT 'Outro'")
+            )
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 def register_cli(app):

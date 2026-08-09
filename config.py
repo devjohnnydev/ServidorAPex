@@ -30,3 +30,8 @@ class Config:
     ALLOWED_EXTENSIONS = {"pdf", "jpg", "jpeg", "png", "webp", "heic"}
 
     CATEGORIAS = ["Venda", "Compra", "Serviço", "Despesa", "Imposto", "Outro"]
+
+    TIPOS_DOCUMENTO = ["Boleto", "NF-e", "Contrato", "Foto", "Recibo", "Outro"]
+
+    # URL publica do ApexAmostra para login federado (vazio = desativado)
+    APEX_AMOSTRA_URL = os.environ.get("APEX_AMOSTRA_URL", "")

@@ -54,6 +54,8 @@ def dashboard():
     data_fim = request.args.get("data_fim", "")
     tipo = request.args.get("tipo", "")
     categoria = request.args.get("categoria", "")
+    tipo_documento = request.args.get("tipo_documento", "")
+    cliente = request.args.get("cliente", "").strip()
     busca = request.args.get("busca", "").strip()
 
     if data_inicio:
@@ -68,6 +70,10 @@ def dashboard():
         query = query.filter(Nota.tipo == tipo)
     if categoria:
         query = query.filter(Nota.categoria == categoria)
+    if tipo_documento:
+        query = query.filter(Nota.tipo_documento == tipo_documento)
+    if cliente:
+        query = query.filter(Nota.cliente_fornecedor.ilike(f"%{cliente}%"))
     if busca:
         like = f"%{busca}%"
         query = query.filter(
@@ -83,6 +89,17 @@ def dashboard():
     total_entradas = sum((n.valor for n in notas if n.tipo == "entrada"), Decimal("0"))
     total_saidas = sum((n.valor for n in notas if n.tipo == "saida"), Decimal("0"))
 
+    # Lista de clientes/fornecedores distintos para o dropdown
+    clientes = [
+        r[0] for r in
+        db.session.query(Nota.cliente_fornecedor)
+        .filter(Nota.cliente_fornecedor.isnot(None))
+        .filter(Nota.cliente_fornecedor != "")
+        .distinct()
+        .order_by(Nota.cliente_fornecedor)
+        .all()
+    ]
+
     return render_template(
         "dashboard.html",
         notas=notas,
@@ -90,6 +107,7 @@ def dashboard():
         total_saidas=total_saidas,
         saldo=total_entradas - total_saidas,
         filtros=request.args,
+        clientes=clientes,
     )
 
 
@@ -112,6 +130,7 @@ def upload():
         nota = Nota(
             numero_nota=request.form.get("numero_nota", "").strip(),
             tipo=request.form.get("tipo", "entrada"),
+            tipo_documento=request.form.get("tipo_documento", "Outro"),
             categoria=request.form.get("categoria", "").strip(),
             cliente_fornecedor=request.form.get("cliente_fornecedor", "").strip(),
             valor=parse_valor(request.form.get("valor")),
@@ -140,6 +159,7 @@ def editar(nota_id):
     if request.method == "POST":
         nota.numero_nota = request.form.get("numero_nota", "").strip()
         nota.tipo = request.form.get("tipo", "entrada")
+        nota.tipo_documento = request.form.get("tipo_documento", nota.tipo_documento or "Outro")
         nota.categoria = request.form.get("categoria", "").strip()
         nota.cliente_fornecedor = request.form.get("cliente_fornecedor", "").strip()
         nota.valor = parse_valor(request.form.get("valor"))

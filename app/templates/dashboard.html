@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Início{% endblock %}
 {% block content %}
-<h4 class="mb-3">Notas fiscais</h4>
+<h4 class="mb-3">Documentos</h4>
 
 <form method="get" class="row g-2 mb-4 align-items-end">
   <div class="col-6 col-md-2">
@@ -29,13 +29,36 @@
       {% endfor %}
     </select>
   </div>
+  <div class="col-6 col-md-2">
+    <label class="form-label small">Tipo de documento</label>
+    <select name="tipo_documento" class="form-select form-select-sm">
+      <option value="">Todos</option>
+      {% for td in tipos_documento %}
+      <option value="{{ td }}" {% if filtros.get('tipo_documento') == td %}selected{% endif %}>{{ td }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="form-label small">Cliente/Fornecedor</label>
+    <select name="cliente" class="form-select form-select-sm">
+      <option value="">Todos</option>
+      {% for cf in clientes %}
+      <option value="{{ cf }}" {% if filtros.get('cliente') == cf %}selected{% endif %}>{{ cf }}</option>
+      {% endfor %}
+    </select>
+  </div>
   <div class="col-8 col-md-3">
-    <label class="form-label small">Buscar (cliente, nº nota, descrição)</label>
+    <label class="form-label small">Busca livre (nº nota, descrição…)</label>
     <input type="text" name="busca" class="form-control form-control-sm" value="{{ filtros.get('busca', '') }}">
   </div>
   <div class="col-4 col-md-1">
     <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
   </div>
+  {% if filtros %}
+  <div class="col-auto">
+    <a href="{{ url_for('notas.dashboard') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+  </div>
+  {% endif %}
 </form>
 
 <div class="row mb-4 g-2">
@@ -66,12 +89,14 @@
 </div>
 
 {% if notas %}
+{# --- Tabela desktop --- #}
 <div class="table-responsive d-none d-md-block">
   <table class="table table-striped align-middle">
     <thead>
       <tr>
-        <th>Data</th><th>Tipo</th><th>Categoria</th><th>Cliente/Fornecedor</th>
-        <th>Nº</th><th class="text-end">Valor</th><th>Enviado por</th><th></th>
+        <th>Data</th><th>Tipo</th><th>Documento</th><th>Categoria</th>
+        <th>Cliente/Fornecedor</th><th>Nº</th>
+        <th class="text-end">Valor</th><th>Enviado por</th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -79,9 +104,18 @@
       <tr>
         <td>{{ n.data_emissao.strftime('%d/%m/%Y') }}</td>
         <td><span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ n.tipo }}</span></td>
+        <td>
+          {% set doc = n.tipo_documento or 'Outro' %}
+          {% if doc == 'Boleto' %}<span class="badge bg-warning text-dark">{{ doc }}</span>
+          {% elif doc == 'NF-e' %}<span class="badge bg-info text-dark">{{ doc }}</span>
+          {% elif doc == 'Contrato' %}<span class="badge bg-primary">{{ doc }}</span>
+          {% elif doc == 'Foto' %}<span class="badge bg-secondary">{{ doc }}</span>
+          {% elif doc == 'Recibo' %}<span class="badge bg-dark">{{ doc }}</span>
+          {% else %}<span class="badge bg-light text-dark">{{ doc }}</span>{% endif %}
+        </td>
         <td>{{ n.categoria }}</td>
-        <td>{{ n.cliente_fornecedor }}</td>
-        <td>{{ n.numero_nota }}</td>
+        <td>{{ n.cliente_fornecedor or '—' }}</td>
+        <td>{{ n.numero_nota or '—' }}</td>
         <td class="text-end">R$ {{ "%.2f"|format(n.valor) }}</td>
         <td>{{ n.enviado_por.nome }}</td>
         <td class="text-end">
@@ -96,13 +130,23 @@
   </table>
 </div>
 
+{# --- Cards mobile --- #}
 <div class="d-md-none">
   {% for n in notas %}
   <div class="card mb-2">
     <div class="card-body py-2">
-      <div class="d-flex justify-content-between">
+      <div class="d-flex justify-content-between align-items-start">
         <strong>{{ n.cliente_fornecedor or "—" }}</strong>
-        <span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ n.tipo }}</span>
+        <div class="d-flex gap-1">
+          <span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ n.tipo }}</span>
+          {% set doc = n.tipo_documento or 'Outro' %}
+          {% if doc == 'Boleto' %}<span class="badge bg-warning text-dark">{{ doc }}</span>
+          {% elif doc == 'NF-e' %}<span class="badge bg-info text-dark">{{ doc }}</span>
+          {% elif doc == 'Contrato' %}<span class="badge bg-primary">{{ doc }}</span>
+          {% elif doc == 'Recibo' %}<span class="badge bg-dark">{{ doc }}</span>
+          {% elif doc == 'Foto' %}<span class="badge bg-secondary">{{ doc }}</span>
+          {% else %}<span class="badge bg-light text-dark">{{ doc }}</span>{% endif %}
+        </div>
       </div>
       <div class="small text-muted">{{ n.data_emissao.strftime('%d/%m/%Y') }} · {{ n.categoria }} · Nº {{ n.numero_nota or '—' }}</div>
       <div class="fw-bold">R$ {{ "%.2f"|format(n.valor) }}</div>
@@ -118,6 +162,6 @@
   {% endfor %}
 </div>
 {% else %}
-<p class="text-muted">Nenhuma nota encontrada com esses filtros.</p>
+<p class="text-muted">Nenhum documento encontrado com esses filtros.</p>
 {% endif %}
 {% endblock %}

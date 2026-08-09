@@ -29,6 +29,7 @@ class Nota(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     numero_nota = db.Column(db.String(50))
     tipo = db.Column(db.String(20), nullable=False)  # "entrada" ou "saida"
+    tipo_documento = db.Column(db.String(40), default="Outro")  # Boleto, NF-e, Contrato, Foto, Recibo, Outro
     categoria = db.Column(db.String(60))
     cliente_fornecedor = db.Column(db.String(150))
     valor = db.Column(db.Numeric(12, 2), nullable=False, default=0)
