@@ -498,7 +498,126 @@ def auditoria():
     if not current_user.is_admin:
         abort(403)
 
-    logs = LogAuditoria.query.order_by(LogAuditoria.criado_em.desc()).limit(200).all()
-    return render_template("auditoria.html", logs=logs)
+def enviar_email_alerta(destinatario, assunto, corpo_html):
+    """Envia email via SMTP configurado."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    server = current_app.config.get("MAIL_SERVER")
+    port = current_app.config.get("MAIL_PORT", 587)
+    username = current_app.config.get("MAIL_USERNAME")
+    password = current_app.config.get("MAIL_PASSWORD")
+    sender = current_app.config.get("MAIL_DEFAULT_SENDER") or username
+
+    if not username or not password:
+        return False, "SMTP não configurado (MAIL_USERNAME / MAIL_PASSWORD ausentes)."
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = assunto
+        msg["From"] = sender
+        msg["To"] = destinatario
+        msg.attach(MIMEText(corpo_html, "html"))
+
+        smtp = smtplib.SMTP(server, port, timeout=10)
+        if current_app.config.get("MAIL_USE_TLS", True):
+            smtp.starttls()
+        smtp.login(username, password)
+        smtp.sendmail(sender, [destinatario], msg.as_string())
+        smtp.quit()
+        return True, "E-mail enviado com sucesso."
+    except Exception as e:
+        return False, str(e)
+
+
+@notas_bp.route("/alertas/disparar", methods=["GET", "POST"])
+@login_required
+def disparar_alertas():
+    if not current_user.is_admin:
+        abort(403)
+
+    hoje = datetime.utcnow().date()
+    
+    # 1. Buscar contas a pagar que vencem HOJE
+    vencem_hoje = Nota.query.filter(
+        Nota.status == "Pendente",
+        Nota.data_vencimento == hoje
+    ).all()
+
+    # 2. Buscar contas ATRASADAS
+    atrasadas = Nota.query.filter(
+        Nota.status == "Pendente",
+        Nota.data_vencimento < hoje
+    ).all()
+
+    if not vencem_hoje and not atrasadas:
+        flash("Nenhuma conta a vencer hoje ou atrasada encontrada para alerta.", "info")
+        return redirect(url_for("notas.dashboard"))
+
+    # Buscar admins cadastrados para receber os e-mails
+    admins = User.query.filter_by(is_admin=True).all()
+    emails_destinatarios = [u.email for u in admins if u.email]
+
+    if not emails_destinatarios and current_user.email:
+        emails_destinatarios.append(current_user.email)
+
+    if not emails_destinatarios:
+        flash("Nenhum e-mail cadastrado nos administradores. Cadastre um e-mail nos usuários.", "warning")
+        return redirect(url_for("notas.dashboard"))
+
+    # Construir Corpo HTML corporativo
+    html = f"""
+    <div style="font-family: Arial, sans-serif; background-color: #05100A; color: #e8f5ee; padding: 20px; border-radius: 10px;">
+      <h2 style="color: #2AD07A;">🛡️ Apex Tech Metais — Relatório Diário de Vencimentos</h2>
+      <p style="color: #7aaf8e;">Resumo automático de pendências financeiras gerado em {hoje.strftime('%d/%m/%Y')}.</p>
+      
+      <hr style="border-color: rgba(42,208,122,0.3);" />
+
+      <h3 style="color: #ffc107;">📌 Contas a Pagar que Vencem HOJE ({len(vencem_hoje)})</h3>
+    """
+    if vencem_hoje:
+        html += "<ul style='background: #0E291B; padding: 15px; border-radius: 6px; list-style: none;'>"
+        for n in vencem_hoje:
+            html += f"<li style='margin-bottom: 8px;'><strong>{n.cliente_fornecedor or 'Sem Fornecedor'}</strong> - R$ {n.valor:.2f} ({n.categoria})</li>"
+        html += "</ul>"
+    else:
+        html += "<p style='color: #7aaf8e;'>Nenhuma conta vence hoje.</p>"
+
+    html += f"""
+      <h3 style="color: #ff4d4d;">🚨 Contas ATRASADAS ({len(atrasadas)})</h3>
+    """
+    if atrasadas:
+        html += "<ul style='background: #3d0f0f; padding: 15px; border-radius: 6px; list-style: none;'>"
+        for n in atrasadas:
+            venc_str = n.data_vencimento.strftime('%d/%m/%Y') if n.data_vencimento else 'N/A'
+            html += f"<li style='margin-bottom: 8px;'><strong>{n.cliente_fornecedor or 'Sem Fornecedor'}</strong> - R$ {n.valor:.2f} (Venceu em: {venc_str})</li>"
+        html += "</ul>"
+    else:
+        html += "<p style='color: #7aaf8e;'>Nenhuma conta em atraso!</p>"
+
+    html += """
+      <br />
+      <p style="font-size: 12px; color: #7aaf8e;">Apex Tech Metais — Sistema de Gestão Financeira</p>
+    </div>
+    """
+
+    sucessos = 0
+    erros = []
+    for dest in emails_destinatarios:
+        ok, msg = enviar_email_alerta(dest, f"🚨 [Apex Tech] Alerta de Vencimentos - {hoje.strftime('%d/%m/%Y')}", html)
+        if ok:
+            sucessos += 1
+        else:
+            erros.append(f"{dest}: {msg}")
+
+    if sucessos > 0:
+        registrar_log("Disparou Alertas por E-mail", f"Enviado para {sucessos} destinatário(s). Vencem hoje: {len(vencem_hoje)}, Atrasadas: {len(atrasadas)}")
+        flash(f"Alertas disparados por e-mail com sucesso para {sucessos} administrador(es)!", "success")
+    else:
+        flash(f"Erro ao enviar e-mails de alerta: {'; '.join(erros)}", "danger")
+
+    return redirect(url_for("notas.dashboard"))
+
 
 

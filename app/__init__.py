@@ -111,8 +111,14 @@ def _migrar_colunas(db):
             db.session.execute(
                 text("UPDATE nota SET status = CASE WHEN tipo = 'entrada' THEN 'Recebido' ELSE 'Pago' END WHERE status IS NULL OR status = 'Pendente'")
             )
+        colunas_user = [c["name"] for c in inspector.get_columns("user")]
+        if "email" not in colunas_user:
+            db.session.execute(
+                text("ALTER TABLE user ADD COLUMN email VARCHAR(120)")
+            )
         db.session.commit()
     except Exception:
+
         db.session.rollback()
 
 

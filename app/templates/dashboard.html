@@ -98,7 +98,12 @@
             </label>
           </div>
         </div>
-        <div class="col-6 col-md-3 mt-2 d-flex gap-2 justify-content-end">
+        <div class="col-6 col-md-3 mt-2 d-flex gap-1 justify-content-end flex-wrap">
+          {% if current_user.is_admin %}
+          <a href="{{ url_for('notas.disparar_alertas') }}" class="btn btn-outline-warning btn-sm" title="Disparar Alerta por E-mail de Contas que Vencem Hoje e Atrasadas" onclick="return confirm('Deseja enviar o e-mail de alerta de vencimento para os administradores?');">
+            <i class="fa-solid fa-paper-plane me-1"></i> Alertas
+          </a>
+          {% endif %}
           <a href="{{ url_for('notas.exportar_excel', **filtros) }}" class="btn btn-outline-success btn-sm" title="Baixar relatório em Excel com filtros aplicados">
             <i class="fa-solid fa-file-excel me-1"></i> Excel
           </a>
@@ -107,6 +112,7 @@
           <a href="{{ url_for('notas.dashboard') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
           {% endif %}
         </div>
+
 
       </div>
     </form>

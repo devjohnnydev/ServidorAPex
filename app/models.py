@@ -9,10 +9,12 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     nome = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     ativo = db.Column(db.Boolean, default=True, nullable=False)
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
+
 
     def set_password(self, senha):
         self.password_hash = generate_password_hash(senha)

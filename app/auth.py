@@ -81,20 +81,22 @@ def usuarios():
 def novo_usuario():
     username = request.form.get("username", "").strip()
     nome = request.form.get("nome", "").strip()
+    email = request.form.get("email", "").strip()
     password = request.form.get("password", "")
     is_admin = bool(request.form.get("is_admin"))
 
     if not username or not nome or not password:
-        flash("Preencha todos os campos.", "danger")
+        flash("Preencha todos os campos obrigatórios.", "danger")
         return redirect(url_for("auth.usuarios"))
 
     if User.query.filter_by(username=username).first():
         flash("Já existe um usuário com esse login.", "danger")
         return redirect(url_for("auth.usuarios"))
 
-    user = User(username=username, nome=nome, is_admin=is_admin)
+    user = User(username=username, nome=nome, email=email, is_admin=is_admin)
     user.set_password(password)
     db.session.add(user)
+
     db.session.commit()
     flash(f"Usuário '{nome}' criado com sucesso.", "success")
     return redirect(url_for("auth.usuarios"))

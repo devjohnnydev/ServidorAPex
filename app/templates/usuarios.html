@@ -13,18 +13,22 @@
         <input type="text" name="nome" class="form-control" required>
       </div>
       <div class="col-6 col-md-3">
+        <label class="form-label small">E-mail (para Alertas)</label>
+        <input type="email" name="email" class="form-control" placeholder="admin@apextech.com">
+      </div>
+      <div class="col-6 col-md-2">
         <label class="form-label small">Usuário (login)</label>
         <input type="text" name="username" class="form-control" required>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-2">
         <label class="form-label small">Senha</label>
         <input type="password" name="password" class="form-control" required>
       </div>
-      <div class="col-3 col-md-2 form-check ms-2">
+      <div class="col-6 col-md-1 form-check mb-2">
         <input type="checkbox" name="is_admin" class="form-check-input" id="isAdmin">
         <label class="form-check-label small" for="isAdmin">Admin</label>
       </div>
-      <div class="col-3 col-md-1">
+      <div class="col-6 col-md-1">
         <button type="submit" class="btn btn-primary w-100">Criar</button>
       </div>
     </form>
@@ -32,13 +36,15 @@
 </div>
 
 <table class="table table-striped align-middle">
-  <thead><tr><th>Nome</th><th>Login</th><th>Admin</th><th>Status</th><th></th></tr></thead>
+  <thead><tr><th>Nome</th><th>E-mail</th><th>Login</th><th>Admin</th><th>Status</th><th></th></tr></thead>
   <tbody>
   {% for u in usuarios %}
     <tr>
       <td>{{ u.nome }}</td>
+      <td class="small text-muted">{{ u.email or '—' }}</td>
       <td>{{ u.username }}</td>
       <td>{{ "Sim" if u.is_admin else "Não" }}</td>
+
       <td><span class="badge bg-{{ 'success' if u.ativo else 'secondary' }}">{{ "Ativo" if u.ativo else "Inativo" }}</span></td>
       <td class="text-end">
         {% if u.id != current_user.id %}
