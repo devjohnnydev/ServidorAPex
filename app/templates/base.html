@@ -133,10 +133,23 @@
             color: #ff6b6b;
         }
 
+        @media (max-width: 576px) {
+            .apex-content {
+                padding: 1rem 0.5rem;
+            }
+            .card-body {
+                padding: 0.75rem;
+            }
+            .navbar-brand {
+                font-size: 1rem;
+            }
+        }
+
         /* --- MAIN CONTENT --- */
         .apex-content {
             padding: 1.75rem 1.5rem;
         }
+
 
         /* --- CARDS --- */
         .card {
@@ -397,16 +410,17 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('auth.usuarios') }}">
-            <i class="fa-solid fa-users-cog"></i> Usuários
-          </a>
-        </li>
-        <li class="nav-item">
           <a class="nav-link" href="{{ url_for('notas.auditoria') }}">
             <i class="fa-solid fa-shield-halved"></i> Auditoria
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('auth.usuarios') }}">
+            <i class="fa-solid fa-users-cog"></i> Usuários
+          </a>
+        </li>
         {% endif %}
+
 
 
       </ul>
