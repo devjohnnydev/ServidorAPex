@@ -170,6 +170,18 @@
             border: 1px solid rgba(42,208,122,0.2);
             color: var(--apex-texto);
             border-radius: 8px;
+            color-scheme: dark;
+        }
+
+        /* Ícone de calendário em branco nos navegadores (WebKit e Chrome) */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+            opacity: 0.9;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
         }
 
         .form-control:focus, .form-select:focus {
@@ -178,6 +190,7 @@
             color: var(--apex-texto);
             box-shadow: 0 0 0 3px rgba(42,208,122,0.15);
         }
+
 
         .form-control::placeholder { color: var(--apex-muted); opacity: 0.7; }
 
