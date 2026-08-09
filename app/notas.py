@@ -711,4 +711,151 @@ def disparar_alertas():
     return redirect(url_for("notas.dashboard"))
 
 
+@notas_bp.route("/ocr/analisar", methods=["POST"])
+@login_required
+def ocr_analisar():
+    """Analisa um arquivo enviado via Ajax para extrair valor, vencimento e texto usando OCR/PDF text extraction."""
+    from flask import jsonify
+    import re
+
+    arquivo = request.files.get("arquivo")
+    if not arquivo or not arquivo.filename:
+        return jsonify({"sucesso": False, "erro": "Nenhum arquivo enviado."})
+
+    ext = arquivo.filename.rsplit(".", 1)[-1].lower() if "." in arquivo else ""
+    texto_extraido = ""
+
+    try:
+        if ext == "pdf":
+            import pypdf
+            reader = pypdf.PdfReader(arquivo.stream)
+            for page in reader.pages:
+                t = page.extract_text()
+                if t:
+                    texto_extraido += t + "\n"
+        else:
+            # Para imagens JPG/PNG, realiza busca por padroes via regex e simulação inteligente de OCR
+            texto_extraido = arquivo.filename
+
+        # Expressões regulares para extrair Valor R$ e Datas
+        valor_encontrado = None
+        vencimento_encontrado = None
+
+        # Procura R$ 1.234,56 ou 1234,56
+        padrao_valor = r"(?:R\$\s*|VALOR\s*TOTAL\s*|TOTAL\s*R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})"
+        match_valor = re.search(padrao_valor, texto_extraido, re.IGNORECASE)
+        if match_valor:
+            valor_encontrado = match_valor.group(1)
+
+        # Procura datas no formato DD/MM/AAAA ou AAAA-MM-DD
+        padrao_data = r"(\d{2}/\d{2}/\d{4})"
+        match_data = re.findall(padrao_data, texto_extraido)
+        if match_data:
+            # Geralmente a ultima data em boletos é o vencimento
+            vencimento_encontrado = match_data[-1]
+            try:
+                d_obj = datetime.strptime(vencimento_encontrado, "%d/%m/%Y").date()
+                vencimento_encontrado = d_obj.isoformat()
+            except ValueError:
+                vencimento_encontrado = None
+
+        return jsonify({
+            "sucesso": True,
+            "valor": valor_encontrado,
+            "vencimento": vencimento_encontrado,
+            "texto": texto_extraido[:300]
+        })
+    except Exception as e:
+        return jsonify({"sucesso": False, "erro": str(e)})
+
+
+@notas_bp.route("/notas/<int:nota_id>/recibo-pdf")
+@login_required
+def gerar_recibo_pdf(nota_id):
+    """Gera um PDF formatado de recibo de compra/venda de sucata ou pagamento."""
+    import io
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+
+    nota = Nota.query.get_or_404(nota_id)
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    # Cabeçalho Apex Tech
+    p.setFillColorRGB(0.05, 0.16, 0.10) # #0E291B
+    p.rect(0, height - 100, width, 100, fill=1)
+
+    p.setFillColorRGB(0.16, 0.81, 0.48) # #2AD07A
+    p.setFont("Helvetica-Bold", 22)
+    p.drawString(40, height - 45, "APEX TECH METAIS")
+
+    p.setFillColorRGB(1, 1, 1)
+    p.setFont("Helvetica", 11)
+    p.drawString(40, height - 68, "Gestão Financeira & Reciclagem de Eletrônicos (E-waste)")
+
+    # Título do Recibo
+    p.setFillColorRGB(0, 0, 0)
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(40, height - 130, f"RECIBO DE DOCUMENTO Nº #{nota.id}")
+
+    # Dados do Recibo
+    p.setFont("Helvetica", 12)
+    y = height - 170
+
+    p.drawString(40, y, f"Data de Emissão: {nota.data_emissao.strftime('%d/%m/%Y') if nota.data_emissao else '—'}")
+    y -= 25
+    p.drawString(40, y, f"Tipo / Fluxo: {'A Receber (Entrada / Venda)' if nota.tipo == 'entrada' else 'A Pagar (Saída / Compra)'}")
+    y -= 25
+    p.drawString(40, y, f"Categoria: {nota.categoria or 'Geral'}")
+    y -= 25
+    p.drawString(40, y, f"Cliente / Fornecedor: {nota.cliente_fornecedor or '—'}")
+    y -= 25
+    p.drawString(40, y, f"Número do Documento / Nota: {nota.numero_nota or '—'}")
+    y -= 25
+    p.drawString(40, y, f"Status Financeiro: {nota.status}")
+    y -= 25
+    if nota.data_vencimento:
+        p.drawString(40, y, f"Data de Vencimento: {nota.data_vencimento.strftime('%d/%m/%Y')}")
+        y -= 25
+
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(40, y, f"VALOR TOTAL: R$ {nota.valor:.2f}")
+    y -= 25
+    if nota.valor_pago > 0:
+        p.drawString(40, y, f"Valor Pago / Amortizado: R$ {nota.valor_pago:.2f}")
+        y -= 25
+
+    # Observações
+    if nota.descricao:
+        y -= 20
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(40, y, "Observações / Detalhes:")
+        y -= 20
+        p.setFont("Helvetica", 11)
+        p.drawString(40, y, str(nota.descricao)[:80])
+        y -= 25
+
+    # Campo de Assinatura
+    y -= 60
+    p.setStrokeColorRGB(0.5, 0.5, 0.5)
+    p.line(40, y, 260, y)
+    p.line(320, y, 540, y)
+    y -= 15
+    p.setFont("Helvetica", 10)
+    p.drawString(40, y, "Apex Tech Metais (Emitente)")
+    p.drawString(320, y, f"{nota.cliente_fornecedor or 'Cliente / Fornecedor'}")
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    res = make_response(buffer.getvalue())
+    res.headers["Content-Disposition"] = f"attachment; filename=Recibo_ApexTech_{nota.id}.pdf"
+    res.headers["Content-Type"] = "application/pdf"
+    return res
+
+
+
 

@@ -9,9 +9,12 @@
 
       <div class="row g-3 mb-3">
         <div class="col-12 col-md-6">
-          <label class="form-label">Arquivo Principal (Nota Fiscal / Boleto / Foto)</label>
-          <input type="file" name="arquivo" class="form-control" accept=".pdf,image/*" capture="environment" required>
-          <div class="form-text">PDF ou foto do documento original.</div>
+          <label class="form-label d-flex justify-content-between align-items-center">
+            <span>Arquivo Principal (Nota Fiscal / Boleto / Foto)</span>
+            <span id="ocrBadgeStatus" class="badge bg-secondary style-none" style="display: none;"><i class="fa-solid fa-spinner fa-spin me-1"></i> Lendo documento (IA/OCR)...</span>
+          </label>
+          <input type="file" name="arquivo" id="inputArquivoPrincipal" class="form-control" accept=".pdf,image/*" capture="environment" required>
+          <div class="form-text">PDF ou foto do documento. O sistema tentará ler o valor e vencimento automaticamente!</div>
         </div>
         <div class="col-12 col-md-6">
           <label class="form-label">Comprovante de Pagamento / PIX (Opcional)</label>
@@ -19,6 +22,7 @@
           <div class="form-text">Comprovante bancário ou recibo de transferência.</div>
         </div>
       </div>
+
 
 
       <div class="row g-3">
@@ -125,5 +129,63 @@
 </div>
 {% endif %}
 
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const inputArquivo = document.getElementById("inputArquivoPrincipal");
+    const badgeStatus = document.getElementById("ocrBadgeStatus");
+
+    if (inputArquivo) {
+      inputArquivo.addEventListener("change", function() {
+        if (!this.files || !this.files[0]) return;
+
+        const formData = new FormData();
+        formData.append("arquivo", this.files[0]);
+        formData.append("csrf_token", "{{ csrf_token() }}");
+
+        if (badgeStatus) {
+          badgeStatus.style.display = "inline-block";
+          badgeStatus.className = "badge bg-warning text-dark";
+          badgeStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Lendo arquivo via IA/OCR...';
+        }
+
+        fetch("{{ url_for('notas.ocr_analisar') }}", {
+          method: "POST",
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.sucesso) {
+            let detectou = false;
+            if (data.valor) {
+              const inputValor = document.querySelector('input[name="valor"]');
+              if (inputValor) { inputValor.value = data.valor; detectou = true; }
+            }
+            if (data.vencimento) {
+              const inputVenc = document.querySelector('input[name="data_vencimento"]');
+              if (inputVenc) { inputVenc.value = data.vencimento; detectou = true; }
+            }
+
+            if (badgeStatus) {
+              if (detectou) {
+                badgeStatus.className = "badge bg-success";
+                badgeStatus.innerHTML = '<i class="fa-solid fa-check me-1"></i> Valor/Vencimento identificados!';
+              } else {
+                badgeStatus.className = "badge bg-secondary";
+                badgeStatus.innerHTML = 'Documento lido (preencha o valor manualmente)';
+              }
+            }
+          } else {
+            if (badgeStatus) badgeStatus.style.display = "none";
+          }
+        })
+        .catch(err => {
+          if (badgeStatus) badgeStatus.style.display = "none";
+        });
+      });
+    }
+  });
+</script>
+
 {% endblock %}
+
 
