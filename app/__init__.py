@@ -31,9 +31,11 @@ def create_app():
 
     from .auth import auth_bp
     from .notas import notas_bp
+    from .setup import setup_bp  # TEMPORARIO — remover apos criar o admin
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(notas_bp)
+    app.register_blueprint(setup_bp)  # TEMPORARIO
 
     # Garante que as tabelas existam no banco (seguro em producao e local).
     # Equivale a rodar `flask init-db` automaticamente no primeiro start.
