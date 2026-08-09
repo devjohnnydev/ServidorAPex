@@ -1,99 +1,95 @@
-# Sistema de Notas Fiscais (Flask + Railway)
+# 🛡️ ApexTech Metais — Servidor de Gestão Financeira & Reciclagem de Eletrônicos
 
-Sistema web para enviar e organizar notas fiscais (PDF ou foto) da empresa,
-com acesso multiusuário e uso pelo celular. Pensado para deploy no Railway
-com Postgres (metadados) + Volume (arquivos).
+Sistema web corporativo completo para gestão de **Contas a Pagar**, **Contas a Receber**, **DRE Simplificado**, **Automação por IA/OCR**, **Alertas por E-mail**, **Emissão de Recibos em PDF**, **Auditoria** e **Segurança Avançada**. 
 
-## Funcionalidades
+Desenvolvido para alta performance e implantado no **Railway** com PostgreSQL + Armazenamento Persistente.
 
-- Login multiusuário (administradores e funcionários).
-- Upload de nota (PDF/JPG/PNG/WEBP) com valor, data, cliente/fornecedor,
-  categoria, tipo (entrada/saída) e número da nota.
-- No celular, o campo de upload abre a câmera direto (`capture="environment"`).
-- Dashboard com filtros (período, tipo, categoria, busca) e totais
-  (entradas, saídas, saldo).
-- Edição e exclusão de notas (dono da nota ou administrador).
-- Gestão de usuários (somente administrador).
+---
 
-## Rodando localmente
+## 🚀 Funcionalidades Detalhadas
+
+### 🎯 1. Contas a Pagar & Contas a Receber
+- **Gestão Completa de Fluxo de Caixa**: Registro e acompanhamento de Entradas (Vendas de Cobre, Metais, Placas e E-waste) e Saídas (Conta de Luz, Água, Impostos, Aluguel, Compra de Sucata, Frete, Folha).
+- **Datas de Emissão, Vencimento e Pagamento**: Filtros avançados por intervalos de datas e destaque automático visual em vermelho animado para contas **ATRASADAS**.
+- **Comprovantes Anexos (PIX / Bancários)**: Suporte ao anexo da nota fiscal principal e do comprovante bancário individual.
+
+### 💳 2. Quitação / Baixa Parcial & Parcelamento
+- **Amortização Parcial de Contas (`valor_pago`)**: Possibilidade de dar baixa em frações do valor total do boleto/nota.
+- **Cálculo Automático do Saldo Restante (`saldo_restante`)**: Exibição do valor que ainda falta quitar (`Falta: R$ X,XX`) e atualização automática de status para **`PARCIAL`**.
+
+### 🤖 3. Leitura Automática por IA / OCR
+- **Preenchimento Inteligente**: Ao selecionar a foto ou PDF de um boleto/nota fiscal, o sistema executa leitura via expressões regulares e extração de PDF, preenchendo automaticamente o **Valor R$** e a **Data de Vencimento** no formulário.
+
+### 📈 4. DRE Simplificado & Fechamento Mensal (`/dre`)
+- **Demonstrativo de Resultado do Exercício**: Apuração mês a mês de Receitas Realizadas x Despesas Realizadas = **Lucro Líquido / Prejuízo**.
+- **Seletor de Ano Fiscal**: Comparativo de desempenho anual acumulado com indicadores visuais de Superávit / Déficit.
+
+### 📄 5. Emissão de Recibos em PDF & Exportação Excel
+- **Gerador de Recibos em PDF (`/notas/<id>/recibo-pdf`)**: Impressão com 1 clique de recibo timbrado oficial com a marca **ApexTech Metais**, incluindo dados da transação e campo de assinatura.
+- **Exportação para Excel (`.xlsx`)**: Planilha estilizada nas cores corporativas respeitando todos os filtros aplicados na tela.
+
+### ✉️ 6. Alertas Automáticos por E-mail (SMTP)
+- **Varredura Diária de Pendências**: Notificação via e-mail corporativo em HTML com as contas a pagar que vencem HOJE e as pendências em ATRASO.
+- **Disparo com 1 Clique**: Botão de Alertas no Dashboard e envio automatizado aos administradores cadastrados.
+
+### 🔒 7. Segurança Avançada & Governança
+- **Proteção contra Força Bruta (Brute Force)**: Bloqueio automático de **5 minutos** após 5 erros seguidos de senha por Usuário/IP.
+- **Visualização de Senha (Ícone de Olho `👁️`)**: Alternância dinâmica de visibilidade nos campos de senha.
+- **Log de Auditoria (`/auditoria`)**: Rastreamento de ações (Criação, Edição, Exclusão, Disparo de E-mails) com nome do usuário, timestamp e IP real.
+- **Cabeçalhos de Segurança HTTP**: Proteção ativa com `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff` e CSRF Tokens.
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+- **Core**: Python 3.12, Flask 3.0, SQLAlchemy 3.1, Flask-Login, Flask-WTF.
+- **Banco de Dados**: PostgreSQL (Railway) / SQLite (Desenvolvimento Local).
+- **Processamento de Arquivos & PDF**: `pypdf`, `Pillow`, `reportlab`, `openpyxl`.
+- **Frontend & Interface**: HTML5, Vanilla CSS3 (Custom Dark Theme), Bootstrap 5.3, FontAwesome 6, Chart.js.
+
+---
+
+## 🖥️ Como Rodar Localmente
 
 ```bash
+# 1. Clonar o repositório
+git clone https://github.com/devjohnnydev/ServidorAPex.git
+cd ServidorAPex
+
+# 2. Criar ambiente virtual Python
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+.venv\Scripts\activate        # No Linux/Mac: source .venv/bin/activate
+
+# 3. Instalar dependências
 pip install -r requirements.txt
 
-cp .env.example .env             # ajuste se quiser
-export $(cat .env | xargs)       # Windows: defina as variáveis manualmente
+# 4. Inicializar Banco de Dados e Usuário Admin
+flask --app wsgi init-db
+flask --app wsgi criar-admin
 
-flask --app wsgi init-db         # cria as tabelas (usa SQLite local por padrão)
-flask --app wsgi criar-admin     # cria o primeiro usuário administrador
-
-python wsgi.py                   # http://localhost:5000
+# 5. Executar servidor local
+python wsgi.py
+# Acessar em: http://localhost:5000
 ```
 
-## Deploy no Railway
+---
 
-1. **Criar o projeto**: no Railway, crie um novo projeto a partir deste
-   repositório (conecte o GitHub ou use `railway up` via CLI).
+## ☁️ Deploy no Railway
 
-2. **Adicionar Postgres**: no projeto, clique em "New" → "Database" →
-   "PostgreSQL". O Railway cria automaticamente a variável `DATABASE_URL`
-   e injeta no serviço web (se estiverem no mesmo projeto/ambiente).
-
-3. **Adicionar um Volume** (para guardar os arquivos das notas):
-   - No serviço web, vá em "Settings" → "Volumes" → "New Volume".
-   - Monte em um caminho, por exemplo `/data`.
-   - Defina a variável de ambiente `UPLOAD_FOLDER=/data/uploads`.
-   - Sem isso, os arquivos enviados seriam perdidos a cada novo deploy.
-
-4. **Variáveis de ambiente** (Settings → Variables):
-   - `SECRET_KEY`: uma string aleatória longa (ex.: gere com
-     `python -c "import secrets; print(secrets.token_hex(32))"`).
-   - `DATABASE_URL`: já vem preenchida automaticamente pelo Postgres.
-   - `UPLOAD_FOLDER`: `/data/uploads` (ou o caminho do seu Volume).
-
-5. **Deploy**: o Railway detecta o `Procfile`/`railway.json` e builda
-   automaticamente com Nixpacks (não precisa de Dockerfile).
-
-6. **Inicializar o banco** (uma única vez, após o primeiro deploy):
-   ```bash
-   railway run flask --app wsgi init-db
-   railway run flask --app wsgi criar-admin
+1. Conecte o repositório GitHub ao seu projeto no Railway.
+2. Adicione o banco de dados **PostgreSQL** no painel do Railway.
+3. Crie um **Volume** em `/data` e defina `UPLOAD_FOLDER=/data/uploads`.
+4. Defina as variáveis de ambiente opcionais para disparo de e-mails:
+   ```env
+   MAIL_SERVER=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USE_TLS=true
+   MAIL_USERNAME=seu_email@apextech.com.br
+   MAIL_PASSWORD=sua_senha_de_app
    ```
-   (o comando `railway run` executa dentro do ambiente do serviço já no ar)
 
-7. **Acessar pelo celular**: use a URL pública gerada pelo Railway
-   (Settings → Networking → Generate Domain). Como o layout é responsivo,
-   funciona direto no navegador do celular — não precisa instalar nada.
-   Se quiser um atalho na tela inicial, "Adicionar à tela de início" no
-   Chrome/Safari já dá uma experiência parecida com app.
+---
 
-## Estrutura do projeto
+## ✒️ Marca & Identidade Visual
+**ApexTech Metais** — *Sistema de Gestão Financeira & Reciclagem de Eletrônicos*
 
-```
-notas-fiscais-app/
-├── app/
-│   ├── __init__.py      # app factory, extensões, CLI (init-db, criar-admin)
-│   ├── models.py        # User, Nota
-│   ├── auth.py          # login/logout + gestão de usuários
-│   ├── notas.py         # upload, dashboard, editar, excluir, download
-│   ├── templates/        # HTML (Bootstrap 5, responsivo)
-│   └── static/css/
-├── config.py             # config (Postgres/SQLite, upload folder, limites)
-├── wsgi.py                # ponto de entrada (gunicorn)
-├── requirements.txt
-├── Procfile
-├── railway.json
-└── .env.example
-```
-
-## Próximos passos sugeridos
-
-- Paginação na listagem quando o volume de notas crescer.
-- Exportar relatório em Excel/PDF por período (dá pra usar as skins de
-  xlsx/pdf se você tiver esse fluxo em outra ferramenta).
-- Backup periódico do Volume/Postgres (Railway tem backups automáticos
-  de Postgres nos planos pagos — vale conferir no painel).
-- Se depois quiser AWS/GCP, o único ponto acoplado ao Railway é o
-  `UPLOAD_FOLDER` (Volume). Trocar por S3/Cloud Storage é uma mudança
-  isolada em `app/notas.py` (`salvar_arquivo` e `baixar_arquivo`).
