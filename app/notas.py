@@ -208,13 +208,19 @@ def upload():
                 comprovante_salvo = salvar_arquivo(comprovante)
                 comprovante_orig = comprovante.filename
 
+        valor_pago_val = parse_valor(request.form.get("valor_pago"))
+        valor_val = parse_valor(request.form.get("valor"))
+        if status == "Pendente" and valor_pago_val > 0 and valor_pago_val < valor_val:
+            status = "Parcial"
+
         nota = Nota(
             numero_nota=request.form.get("numero_nota", "").strip(),
             tipo=request.form.get("tipo", "entrada"),
             tipo_documento=request.form.get("tipo_documento", "Outro"),
             categoria=request.form.get("categoria", "").strip(),
             cliente_fornecedor=request.form.get("cliente_fornecedor", "").strip(),
-            valor=parse_valor(request.form.get("valor")),
+            valor=valor_val,
+            valor_pago=valor_pago_val,
             data_emissao=data_emissao,
             data_vencimento=data_vencimento,
             data_pagamento=data_pagamento,
@@ -255,11 +261,18 @@ def editar(nota_id):
         nota.categoria = request.form.get("categoria", "").strip()
         nota.cliente_fornecedor = request.form.get("cliente_fornecedor", "").strip()
         nota.valor = parse_valor(request.form.get("valor"))
+        nota.valor_pago = parse_valor(request.form.get("valor_pago"))
         nota.data_emissao = parse_data(request.form.get("data_emissao"), nota.data_emissao)
         nota.data_vencimento = parse_data(request.form.get("data_vencimento"), nota.data_vencimento)
         nota.data_pagamento = parse_data(request.form.get("data_pagamento"), nota.data_pagamento)
         nota.status = request.form.get("status", nota.status or "Pendente")
+        
+        # Se houve baixa parcial automatica
+        if nota.status == "Pendente" and nota.valor_pago > 0 and nota.valor_pago < nota.valor:
+            nota.status = "Parcial"
+
         nota.descricao = request.form.get("descricao", "").strip()
+
 
         novo_arquivo = request.files.get("arquivo")
         if novo_arquivo and novo_arquivo.filename:
@@ -492,11 +505,89 @@ def exportar_excel():
     return res
 
 
+@notas_bp.route("/dre")
+@login_required
+def dre():
+    if not current_user.is_admin:
+        abort(403)
+
+    ano = request.args.get("ano", datetime.utcnow().year, type=int)
+
+    # 1. Apurar receitas e despesas por mês
+    meses_nomes = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ]
+
+    dados_meses = []
+    total_ano_receitas = Decimal("0")
+    total_ano_despesas = Decimal("0")
+
+    for m in range(1, 13):
+        # Receitas do mes (entradas efetuadas ou parciais)
+        notas_entradas = Nota.query.filter(
+            Nota.tipo == "entrada",
+            Nota.status.in_(["Recebido", "Parcial"]),
+            db.extract("year", Nota.data_emissao) == ano,
+            db.extract("month", Nota.data_emissao) == m
+        ).all()
+        rec = sum((n.valor_pago if n.status == 'Parcial' else n.valor for n in notas_entradas), Decimal("0"))
+
+        # Despesas do mes (saidas efetuadas ou parciais)
+        notas_saidas = Nota.query.filter(
+            Nota.tipo == "saida",
+            Nota.status.in_(["Pago", "Parcial"]),
+            db.extract("year", Nota.data_emissao) == ano,
+            db.extract("month", Nota.data_emissao) == m
+        ).all()
+        desp = sum((n.valor_pago if n.status == 'Parcial' else n.valor for n in notas_saidas), Decimal("0"))
+
+        resultado_mes = rec - desp
+        total_ano_receitas += rec
+        total_ano_despesas += desp
+
+        dados_meses.append({
+            "mes_num": m,
+            "mes_nome": meses_nomes[m - 1],
+            "receitas": rec,
+            "despesas": desp,
+            "resultado": resultado_mes
+        })
+
+    lucro_liquido_ano = total_ano_receitas - total_ano_despesas
+
+    # Obter lista de anos disponíveis no banco
+    anos = [
+        r[0] for r in db.session.query(db.extract("year", Nota.data_emissao))
+        .filter(Nota.data_emissao.isnot(None))
+        .distinct()
+        .order_by(db.extract("year", Nota.data_emissao).desc())
+        .all()
+    ]
+    if ano not in anos:
+        anos.append(ano)
+        anos.sort(reverse=True)
+
+    return render_template(
+        "dre.html",
+        ano_selecionado=ano,
+        anos=anos,
+        dados_meses=dados_meses,
+        total_ano_receitas=total_ano_receitas,
+        total_ano_despesas=total_ano_despesas,
+        lucro_liquido_ano=lucro_liquido_ano
+    )
+
+
 @notas_bp.route("/auditoria")
 @login_required
 def auditoria():
     if not current_user.is_admin:
         abort(403)
+
+    logs = LogAuditoria.query.order_by(LogAuditoria.criado_em.desc()).limit(200).all()
+    return render_template("auditoria.html", logs=logs)
+
 
 def enviar_email_alerta(destinatario, assunto, corpo_html):
     """Envia email via SMTP configurado."""

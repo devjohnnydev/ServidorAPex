@@ -45,7 +45,8 @@ class Config:
 
     TIPOS_DOCUMENTO = ["Boleto", "NF-e", "Contrato", "Foto", "Recibo", "Outro"]
 
-    STATUS_FINANCEIRO = ["Pendente", "Pago", "Recebido", "Cancelado"]
+    STATUS_FINANCEIRO = ["Pendente", "Parcial", "Pago", "Recebido", "Cancelado"]
+
 
     # Configurações de E-mail / SMTP para Notificações de Vencimento
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")

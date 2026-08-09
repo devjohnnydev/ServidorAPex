@@ -35,11 +35,13 @@ class Nota(db.Model):
     categoria = db.Column(db.String(60))
     cliente_fornecedor = db.Column(db.String(150))
     valor = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    valor_pago = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     data_emissao = db.Column(db.Date, nullable=False)
     data_vencimento = db.Column(db.Date, nullable=True)
     data_pagamento = db.Column(db.Date, nullable=True)
-    status = db.Column(db.String(20), nullable=False, default="Pendente")  # Pendente, Pago, Recebido, Cancelado
+    status = db.Column(db.String(20), nullable=False, default="Pendente")  # Pendente, Pago, Recebido, Parcial, Cancelado
     descricao = db.Column(db.Text)
+
 
     arquivo_nome = db.Column(db.String(255), nullable=False)  # nome salvo em disco
     arquivo_nome_original = db.Column(db.String(255), nullable=False)
@@ -53,10 +55,20 @@ class Nota(db.Model):
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
+    def saldo_restante(self):
+        if self.status in ("Pago", "Recebido"):
+            return Decimal("0")
+        v = self.valor or Decimal("0")
+        vp = self.valor_pago or Decimal("0")
+        res = v - vp
+        return res if res > 0 else Decimal("0")
+
+    @property
     def is_atrasada(self):
-        if self.status == "Pendente" and self.data_vencimento:
+        if self.status in ("Pendente", "Parcial") and self.data_vencimento:
             return self.data_vencimento < datetime.utcnow().date()
         return False
+
 
     def pode_editar(self, user):
         return user.is_admin or self.enviado_por_id == user.id

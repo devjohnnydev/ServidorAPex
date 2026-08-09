@@ -288,6 +288,8 @@
         <td>
           {% if n.is_atrasada %}
             <span class="badge bg-danger animate-pulse"><i class="fa-solid fa-triangle-exclamation me-1"></i> ATRASADA</span>
+          {% elif n.status == 'Parcial' %}
+            <span class="badge bg-info text-dark" title="Valor Pago: R$ {{ '%.2f'|format(n.valor_pago) }}"><i class="fa-solid fa-clock-rotate-left me-1"></i> PARCIAL</span>
           {% elif n.status == 'Pago' or n.status == 'Recebido' %}
             <span class="badge bg-success">{{ n.status }}</span>
           {% elif n.status == 'Cancelado' %}
@@ -301,7 +303,13 @@
         </td>
         <td><strong>{{ n.cliente_fornecedor or '—' }}</strong></td>
         <td class="small">{{ n.numero_nota or '—' }}</td>
-        <td class="text-end fw-bold">R$ {{ "%.2f"|format(n.valor) }}</td>
+        <td class="text-end fw-bold">
+          R$ {{ "%.2f"|format(n.valor) }}
+          {% if n.status == 'Parcial' and n.saldo_restante > 0 %}
+          <div class="small text-warning" style="font-size:0.75rem;">Falta: R$ {{ "%.2f"|format(n.saldo_restante) }}</div>
+          {% endif %}
+        </td>
+
         <td class="small text-muted"><i class="fa-solid fa-user-circle me-1"></i>{{ n.enviado_por.nome }}</td>
         <td class="text-end">
           <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank" title="Ver Nota/Documento"><i class="fa-solid fa-file-pdf"></i></a>

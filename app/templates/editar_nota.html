@@ -83,14 +83,22 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-8 col-md-8">
+        <div class="col-8 col-md-6">
           <label class="form-label">Cliente / Fornecedor</label>
           <input type="text" name="cliente_fornecedor" class="form-control" value="{{ nota.cliente_fornecedor or '' }}">
         </div>
-        <div class="col-4 col-md-4">
-          <label class="form-label">Valor (R$)</label>
+        <div class="col-4 col-md-3">
+          <label class="form-label">Valor Total (R$)</label>
           <input type="text" name="valor" class="form-control" value="{{ nota.valor }}" required>
         </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Valor Amortizado/Pago (R$)</label>
+          <input type="text" name="valor_pago" class="form-control" value="{{ nota.valor_pago or '0.00' }}">
+          {% if nota.saldo_restante > 0 and nota.valor_pago > 0 %}
+          <div class="form-text text-warning">Saldo Restante: R$ {{ "%.2f"|format(nota.saldo_restante) }}</div>
+          {% endif %}
+        </div>
+
         <div class="col-12">
           <label class="form-label">Observações / Detalhes</label>
           <textarea name="descricao" class="form-control" rows="2">{{ nota.descricao or '' }}</textarea>
