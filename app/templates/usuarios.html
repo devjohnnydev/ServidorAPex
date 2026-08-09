@@ -22,8 +22,14 @@
       </div>
       <div class="col-6 col-md-2">
         <label class="form-label small">Senha</label>
-        <input type="password" name="password" class="form-control" required>
+        <div class="input-group">
+          <input type="password" name="password" id="inputSenhaUser" class="form-control border-end-0" required>
+          <button type="button" class="btn btn-outline-secondary border-start-0 bg-transparent text-light" id="btnToggleSenhaUser" title="Mostrar/Ocultar Senha">
+            <i class="fa-solid fa-eye" id="iconeOlhoUser"></i>
+          </button>
+        </div>
       </div>
+
       <div class="col-6 col-md-1 form-check mb-2">
         <input type="checkbox" name="is_admin" class="form-check-input" id="isAdmin">
         <label class="form-check-label small" for="isAdmin">Admin</label>
@@ -60,4 +66,25 @@
   {% endfor %}
   </tbody>
 </table>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const btnToggleUser = document.getElementById("btnToggleSenhaUser");
+    const inputSenhaUser = document.getElementById("inputSenhaUser");
+    const iconeOlhoUser = document.getElementById("iconeOlhoUser");
+
+    if (btnToggleUser && inputSenhaUser && iconeOlhoUser) {
+      btnToggleUser.addEventListener("click", function() {
+        if (inputSenhaUser.type === "password") {
+          inputSenhaUser.type = "text";
+          iconeOlhoUser.className = "fa-solid fa-eye-slash text-success";
+        } else {
+          inputSenhaUser.type = "password";
+          iconeOlhoUser.className = "fa-solid fa-eye";
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}
+

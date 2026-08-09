@@ -204,8 +204,14 @@
       </div>
       <div class="mb-4">
         <label class="form-label"><i class="fa-solid fa-lock me-1"></i>Senha</label>
-        <input type="password" name="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        <div class="input-group">
+          <input type="password" name="password" id="inputSenhaLogin" class="form-control border-end-0" placeholder="••••••••" required autocomplete="current-password">
+          <button type="button" class="btn btn-outline-secondary border-start-0 bg-transparent text-light" id="btnToggleSenha" title="Mostrar/Ocultar Senha">
+            <i class="fa-solid fa-eye" id="iconeOlho"></i>
+          </button>
+        </div>
       </div>
+
       <button type="submit" class="btn-apex">
         <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
       </button>
@@ -218,5 +224,25 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const btnToggle = document.getElementById("btnToggleSenha");
+    const inputSenha = document.getElementById("inputSenhaLogin");
+    const iconeOlho = document.getElementById("iconeOlho");
+
+    if (btnToggle && inputSenha && iconeOlho) {
+      btnToggle.addEventListener("click", function() {
+        if (inputSenha.type === "password") {
+          inputSenha.type = "text";
+          iconeOlho.className = "fa-solid fa-eye-slash text-success";
+        } else {
+          inputSenha.type = "password";
+          iconeOlho.className = "fa-solid fa-eye";
+        }
+      });
+    }
+  });
+</script>
 </body>
 </html>
+
