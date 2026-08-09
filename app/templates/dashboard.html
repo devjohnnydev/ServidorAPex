@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Início{% endblock %}
+{% block content %}
+<h4 class="mb-3">Notas fiscais</h4>
+
+<form method="get" class="row g-2 mb-4 align-items-end">
+  <div class="col-6 col-md-2">
+    <label class="form-label small">De</label>
+    <input type="date" name="data_inicio" class="form-control form-control-sm" value="{{ filtros.get('data_inicio', '') }}">
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="form-label small">Até</label>
+    <input type="date" name="data_fim" class="form-control form-control-sm" value="{{ filtros.get('data_fim', '') }}">
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="form-label small">Tipo</label>
+    <select name="tipo" class="form-select form-select-sm">
+      <option value="">Todos</option>
+      <option value="entrada" {% if filtros.get('tipo') == 'entrada' %}selected{% endif %}>Entrada</option>
+      <option value="saida" {% if filtros.get('tipo') == 'saida' %}selected{% endif %}>Saída</option>
+    </select>
+  </div>
+  <div class="col-6 col-md-2">
+    <label class="form-label small">Categoria</label>
+    <select name="categoria" class="form-select form-select-sm">
+      <option value="">Todas</option>
+      {% for c in categorias %}
+      <option value="{{ c }}" {% if filtros.get('categoria') == c %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-8 col-md-3">
+    <label class="form-label small">Buscar (cliente, nº nota, descrição)</label>
+    <input type="text" name="busca" class="form-control form-control-sm" value="{{ filtros.get('busca', '') }}">
+  </div>
+  <div class="col-4 col-md-1">
+    <button type="submit" class="btn btn-primary btn-sm w-100">Filtrar</button>
+  </div>
+</form>
+
+<div class="row mb-4 g-2">
+  <div class="col-4">
+    <div class="card text-bg-success h-100">
+      <div class="card-body py-2">
+        <div class="small">Entradas</div>
+        <div class="fs-5">R$ {{ "%.2f"|format(total_entradas) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-bg-danger h-100">
+      <div class="card-body py-2">
+        <div class="small">Saídas</div>
+        <div class="fs-5">R$ {{ "%.2f"|format(total_saidas) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-bg-dark h-100">
+      <div class="card-body py-2">
+        <div class="small">Saldo</div>
+        <div class="fs-5">R$ {{ "%.2f"|format(saldo) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if notas %}
+<div class="table-responsive d-none d-md-block">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Data</th><th>Tipo</th><th>Categoria</th><th>Cliente/Fornecedor</th>
+        <th>Nº</th><th class="text-end">Valor</th><th>Enviado por</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for n in notas %}
+      <tr>
+        <td>{{ n.data_emissao.strftime('%d/%m/%Y') }}</td>
+        <td><span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ n.tipo }}</span></td>
+        <td>{{ n.categoria }}</td>
+        <td>{{ n.cliente_fornecedor }}</td>
+        <td>{{ n.numero_nota }}</td>
+        <td class="text-end">R$ {{ "%.2f"|format(n.valor) }}</td>
+        <td>{{ n.enviado_por.nome }}</td>
+        <td class="text-end">
+          <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank">Ver</a>
+          {% if n.pode_editar(current_user) %}
+          <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="d-md-none">
+  {% for n in notas %}
+  <div class="card mb-2">
+    <div class="card-body py-2">
+      <div class="d-flex justify-content-between">
+        <strong>{{ n.cliente_fornecedor or "—" }}</strong>
+        <span class="badge bg-{{ 'success' if n.tipo == 'entrada' else 'danger' }}">{{ n.tipo }}</span>
+      </div>
+      <div class="small text-muted">{{ n.data_emissao.strftime('%d/%m/%Y') }} · {{ n.categoria }} · Nº {{ n.numero_nota or '—' }}</div>
+      <div class="fw-bold">R$ {{ "%.2f"|format(n.valor) }}</div>
+      <div class="small text-muted">Enviado por {{ n.enviado_por.nome }}</div>
+      <div class="mt-2">
+        <a href="{{ url_for('notas.baixar_arquivo', nota_id=n.id) }}" class="btn btn-sm btn-outline-secondary" target="_blank">Ver arquivo</a>
+        {% if n.pode_editar(current_user) %}
+        <a href="{{ url_for('notas.editar', nota_id=n.id) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">Nenhuma nota encontrada com esses filtros.</p>
+{% endif %}
+{% endblock %}

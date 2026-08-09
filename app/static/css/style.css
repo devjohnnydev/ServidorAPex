@@ -1,0 +1,6 @@
+body { background-color: #f5f6f8; }
+.navbar-brand { font-weight: 600; }
+.card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+@media (max-width: 767px) {
+  .container { padding-left: 12px; padding-right: 12px; }
+}

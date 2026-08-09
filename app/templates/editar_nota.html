@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Editar nota{% endblock %}
+{% block content %}
+<h4 class="mb-3">Editar nota</h4>
+<div class="card">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3">
+        <label class="form-label">Arquivo atual</label>
+        <div>
+          <a href="{{ url_for('notas.baixar_arquivo', nota_id=nota.id) }}" target="_blank">{{ nota.arquivo_nome_original }}</a>
+        </div>
+        <label class="form-label mt-2">Substituir arquivo (opcional)</label>
+        <input type="file" name="arquivo" class="form-control" accept=".pdf,image/*" capture="environment">
+      </div>
+
+      <div class="row g-3">
+        <div class="col-6">
+          <label class="form-label">Tipo</label>
+          <select name="tipo" class="form-select">
+            <option value="entrada" {% if nota.tipo == 'entrada' %}selected{% endif %}>Entrada (venda)</option>
+            <option value="saida" {% if nota.tipo == 'saida' %}selected{% endif %}>Saída (compra/despesa)</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Categoria</label>
+          <select name="categoria" class="form-select">
+            {% for c in categorias %}
+            <option value="{{ c }}" {% if nota.categoria == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Número da nota</label>
+          <input type="text" name="numero_nota" class="form-control" value="{{ nota.numero_nota or '' }}">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Data de emissão</label>
+          <input type="date" name="data_emissao" class="form-control" value="{{ nota.data_emissao.isoformat() }}" required>
+        </div>
+        <div class="col-8">
+          <label class="form-label">Cliente/Fornecedor</label>
+          <input type="text" name="cliente_fornecedor" class="form-control" value="{{ nota.cliente_fornecedor or '' }}">
+        </div>
+        <div class="col-4">
+          <label class="form-label">Valor (R$)</label>
+          <input type="text" name="valor" class="form-control" value="{{ nota.valor }}" required>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Observações</label>
+          <textarea name="descricao" class="form-control" rows="2">{{ nota.descricao or '' }}</textarea>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary flex-fill">Salvar alterações</button>
+      </div>
+    </form>
+
+    <form method="post" action="{{ url_for('notas.excluir', nota_id=nota.id) }}"
+          onsubmit="return confirm('Tem certeza que deseja excluir esta nota?');" class="mt-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-danger w-100">Excluir nota</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

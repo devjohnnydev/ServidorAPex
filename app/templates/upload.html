@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Enviar nota{% endblock %}
+{% block content %}
+<h4 class="mb-3">Enviar nota fiscal</h4>
+<div class="card">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3">
+        <label class="form-label">Arquivo (PDF ou foto da nota)</label>
+        <input type="file" name="arquivo" class="form-control" accept=".pdf,image/*" capture="environment" required>
+        <div class="form-text">No celular, você pode tirar a foto direto pela câmera.</div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-6">
+          <label class="form-label">Tipo</label>
+          <select name="tipo" class="form-select">
+            <option value="entrada">Entrada (venda)</option>
+            <option value="saida">Saída (compra/despesa)</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Categoria</label>
+          <select name="categoria" class="form-select">
+            {% for c in categorias %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Número da nota</label>
+          <input type="text" name="numero_nota" class="form-control">
+        </div>
+        <div class="col-6">
+          <label class="form-label">Data de emissão</label>
+          <input type="date" name="data_emissao" class="form-control" value="{{ hoje }}" required>
+        </div>
+        <div class="col-8">
+          <label class="form-label">Cliente/Fornecedor</label>
+          <input type="text" name="cliente_fornecedor" class="form-control">
+        </div>
+        <div class="col-4">
+          <label class="form-label">Valor (R$)</label>
+          <input type="text" name="valor" class="form-control" placeholder="0,00" required>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Observações</label>
+          <textarea name="descricao" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary mt-3 w-100">Enviar nota</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
